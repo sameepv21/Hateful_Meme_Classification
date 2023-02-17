@@ -1,3 +1,17 @@
+# Checklist
+- [  ] NLP theory like encoders, decoders, transformers, LSTM, BERT etc.
+- [  ] Pytorch and Pytorch Lighting
+- [  ] In depth Literature Review
+- [  ] Internal Working of CNN (Math)
+- [  ] Mathematics behind various optimizers
+- [  ] Various types of neural networks, their workings (math)
+    - [  ] RNN and ANN
+    - [  ] Feedforward
+    - [  ] MLP
+    - [  ] ResNet
+    - [  ] CNN
+    - [  ] LSTM
+
 # Introduction
 # Motivation
 # Generic Architecture
