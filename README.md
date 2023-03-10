@@ -34,3 +34,10 @@ As a result, even though there are slight variations, the generic architecture o
 
 # Deep Learning Component Architecture
 ![DL_Architecture](./images/ML_Model.png)
+
+# Dataset
+Download the following two datasets from kaggle.
+1. [Facebook Hatefull Meme Challenge](https://www.kaggle.com/datasets/parthplc/facebook-hateful-meme-dataset)
+2. [MMHS150K](https://www.kaggle.com/datasets/victorcallejasf/multimodal-hate-speech)
+
+Once the dataset is downloaded, extract the zip folders and place them in the a directory called "data". Make sure that the names of the two folders are "facebook" and "MMHS150K".
