@@ -3,12 +3,13 @@ import json
 import os
 from tqdm import tqdm
 
+COLUMN_NAMES = ['id', 'text', 'label']
+
 def facebook_extractor():
     ROOT_URL = '../data/facebook'
     TRAIN_FILENAME = 'train.jsonl'
     TEST_FILENAME = 'test.jsonl'
     VAL_FILENAME = 'dev.jsonl'
-    COLUMN_NAMES = ['id', 'text', 'label']
 
     train = open(os.path.join(ROOT_URL, TRAIN_FILENAME))
     test = open(os.path.join(ROOT_URL, TEST_FILENAME))
@@ -37,3 +38,29 @@ def facebook_extractor():
     os.system("rm -rf " + os.path.join(ROOT_URL, TRAIN_FILENAME))
     os.system("rm -rf " + os.path.join(ROOT_URL, TEST_FILENAME))
     os.system("rm -rf " + os.path.join(ROOT_URL, VAL_FILENAME))
+
+def mmhs150k_extractor():
+    SPLIT_ROOT_URL = '../data/MMHS150K/splits' # Extract ids from text files
+    TEXT_ROOT_URL = '../data/MMHS150K/img_txt' # Extract text using ids!
+    ROOT_URL = '../data/MMHS150K'
+    TRAIN_FILENAME = 'train_ids.txt'
+    TEST_FILENAME = 'test_ids.txt'
+    VAL_FILENAME = 'val_ids.txt'
+    LABEL_FILE = '../data/MMHS150K/MMHS150K_GT.json' # Extract label using ids
+    
+
+    train_df = pd.DataFrame(columns=COLUMN_NAMES)
+    test_df = pd.DataFrame(columns=COLUMN_NAMES)
+    val_df = pd.DataFrame(columns=COLUMN_NAMES)
+
+    split_train = open(os.path.join(SPLIT_ROOT_URL, TRAIN_FILENAME))
+    split_test = open(os.path.join(SPLIT_ROOT_URL, TEST_FILENAME))
+    split_val = open(os.path.join(SPLIT_ROOT_URL, VAL_FILENAME))
+
+    
+
+def main():
+    # facebook_extractor()
+    mmhs150k_extractor()
+
+main()
