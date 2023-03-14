@@ -57,10 +57,12 @@ def mmhs150k_extractor():
     split_test = open(os.path.join(SPLIT_ROOT_URL, TEST_FILENAME))
     split_val = open(os.path.join(SPLIT_ROOT_URL, VAL_FILENAME))
 
-    
+    for index, id_set in tqdm(enumerate([split_train, split_test, split_val])):
+        for _id in id_set:
+            pass
 
 def main():
-    # facebook_extractor()
-    mmhs150k_extractor()
+    facebook_extractor()
+    # mmhs150k_extractor()
 
 main()
