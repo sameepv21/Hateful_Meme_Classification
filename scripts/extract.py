@@ -20,8 +20,8 @@ def facebook_extractor():
     val_df = pd.DataFrame(columns=COLUMN_NAMES)
 
     for index, image_set in enumerate([train, test, val]):
-        for train_img in tqdm(image_set):
-            result = json.loads(train_img)
+        for img in tqdm(image_set):
+            result = json.loads(img)
             id = result.get('id')
             label = result.get('label')
             text = result.get('text')
@@ -31,6 +31,8 @@ def facebook_extractor():
                 test_df.loc[len(test_df.index)] = [id, text, label]
             else:
                 val_df.loc[len(val_df.index)] = [id, text, label]
+        
+    test_df.drop('label', axis = 1, inplace = True) # Cause there is no label
 
     train_df.to_csv(os.path.join(ROOT_URL, 'train.csv'))
     test_df.to_csv(os.path.join(ROOT_URL, 'test.csv'))
