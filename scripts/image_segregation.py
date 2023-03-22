@@ -32,8 +32,28 @@ def segregate_images():
             else:
                 os.system('mv ' + ROOT_URL + '/' + str(id) + '.png' + ' ' + ROOT_URL + '/val')
 
+def separate_classes():
+    os.system("mkdir " + os.path.join(ROOT_URL) + '/train/hateful')
+    os.system("mkdir " + os.path.join(ROOT_URL) + '/train/non_hateful')
+    os.system("mkdir " + os.path.join(ROOT_URL) + '/val/hateful')
+    os.system("mkdir " + os.path.join(ROOT_URL) + '/val/non_hateful')
+
+    for index, df in enumerate([train_df, val_df]):
+        for id in tqdm(df['id']):
+            label = df[df['id'] == id].iloc[0]['label']
+            if index == 0:
+                if label == 0:
+                    os.system('mv ' + ROOT_URL + '/train/' + str(id) + '.png' + ' ' + ROOT_URL + '/train/non_hateful')
+                else:
+                    os.system('mv ' + ROOT_URL + '/train/' + str(id) + '.png' + ' ' + ROOT_URL + '/train/hateful')
+            else:
+                if label == 0:
+                    os.system('mv ' + ROOT_URL + '/val/' + str(id) + '.png' + ' ' + ROOT_URL + '/val/non_hateful')
+                else:
+                    os.system('mv ' + ROOT_URL + '/val/' + str(id) + '.png' + ' ' + ROOT_URL + '/val/hateful')
+
 def main():
     strip_names(ROOT_URL)
     segregate_images()
-
+    separate_classes()
 main()
