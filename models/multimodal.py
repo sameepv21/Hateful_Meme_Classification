@@ -21,7 +21,7 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, index):
         image_id = self.data.loc[index, 'id']
-        image_file = os.path.join(self.image_dir, f"{image_id}.jpg")
+        image_file = os.path.join(self.image_dir, f"{image_id}.png")
         image = Image.open(image_file).convert('RGB')
         if self.transform is not None:
             image = self.transform(image)
