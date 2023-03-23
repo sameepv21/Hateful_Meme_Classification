@@ -73,6 +73,7 @@ class LateFusionModel(nn.Module):
 image_dir = '../data/facebook/img/train'
 train_csv = '../data/facebook/train.csv'
 val_csv = '../data/facebook/val.csv'
+test_csv = '../data/facebook/test.csv'
 
 # Define transforms for image preprocessing
 transform = transforms.Compose([
@@ -83,8 +84,10 @@ transform = transforms.Compose([
 
 # Define data loaders for training and testing
 train_data = CustomDataset(image_dir, train_csv, transform)
-test_data = CustomDataset(image_dir, val_csv, transform)
+val_data = CustomDataset(image_dir, val_csv, transform)
+test_data = CustomDataset(image_dir, test_csv, test_csv)
 train_loader = DataLoader(train_data, batch_size=128, shuffle=True)
+val_loader = DataLoader(val_data, batch_size=128, shuffle=False)
 test_loader = DataLoader(test_data, batch_size=128, shuffle=False)
 
 # Define the model
