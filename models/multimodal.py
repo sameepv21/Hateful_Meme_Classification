@@ -105,8 +105,10 @@ model.to(device)
 
 num_epochs = 10
 for epoch in range(num_epochs):
-    train_loss = 0.0
-    train_acc = 0.0
+    train_loss = 0
+    train_acc = 0
+    val_loss = 0
+    val_acc = 0
     model.train()
     for images, texts, labels in train_loader:
         images = images.to(device)
@@ -122,14 +124,25 @@ for epoch in range(num_epochs):
         train_loss += loss.item() * images.size(0)
         train_acc += torch.sum(torch.max(outputs, dim=1)[1] == labels)
 
+    model.eval()
+    for images, text, labels in val_loader:
+        outputs = model(images, text)
+        loss = criterion(outputs, labels)
+        val_loss = loss.item() * images.size(0)
+        val_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+
     train_loss = train_loss / len(train_data)
     train_acc = train_acc / len(train_data)
 
+    val_loss = val_loss / len(val_data)
+    val_acc = val_acc / len(val_data)
+
     print(f"Epoch {epoch+1}/{num_epochs}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
+    print(f"Epoch {epoch+1}/{num_epochs}: Val Loss = {val_loss:.4f}, Val Accuracy = {val_acc:.4f}")
 
     # Evaluate the model
-    test_loss = 0.0
-    test_acc = 0.0
+    test_loss = 0
+    test_acc = 0
     model.eval()
     with torch.no_grad():
         for images, texts, labels in test_loader:
