@@ -3,6 +3,9 @@ import json
 import os
 from tqdm import tqdm
 
+
+"""NOT REQUIRED SCRIPT"""
+
 COLUMN_NAMES = ['id', 'text', 'label']
 
 def facebook_extractor():
