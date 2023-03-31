@@ -65,4 +65,7 @@ def main():
     segregate_images()
     separate_classes()
     os.system("rm -rf ../data/facebook/img")
+    os.system('rm -rf ../data/facebook/train.jsonl')
+    os.system('rm -rf ../data/facebook/dev.jsonl')
+    os.system('rm -rf ../data/facebook/test.jsonl')
 main()
