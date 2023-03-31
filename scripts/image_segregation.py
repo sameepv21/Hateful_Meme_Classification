@@ -58,8 +58,6 @@ def separate_classes():
             df['img'] = df['img'].replace(img, new_path)
         if(index == 0):
             df.to_json("../data/facebook/train.json", orient = 'records')
-        elif(index == 1):
-            df.to_json("../data/facebook/test.json", orient = 'records')
         else:
             df.to_json("../data/facebook/dev.json", orient = 'records')
 
