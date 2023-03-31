@@ -10,7 +10,7 @@ def balance(path):
     nm = SMOTENC(random_state = 42, categorical_features = [1,2])
     X_new, y_new = nm.fit_resample(x, y)
     df_new = pd.concat([X_new, y_new], axis = 1)
-    df_new.to_json(path)
+    df_new.to_json(path, orient = 'records')
 
 balance('../data/facebook/train.json')
 balance('../data/facebook/dev.json')

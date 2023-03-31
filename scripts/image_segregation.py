@@ -57,11 +57,11 @@ def separate_classes():
                     new_path = "dev/hateful/" + img.strip('dev/')
             df['img'] = df['img'].replace(img, new_path)
         if(index == 0):
-            df.to_json("../data/facebook/train.json")
+            df.to_json("../data/facebook/train.json", orient = 'records')
         elif(index == 1):
-            df.to_json("../data/facebook/test.json")
+            df.to_json("../data/facebook/test.json", orient = 'records')
         else:
-            df.to_json("../data/facebook/dev.json")
+            df.to_json("../data/facebook/dev.json", orient = 'records')
 
 def main():
     segregate_images()
