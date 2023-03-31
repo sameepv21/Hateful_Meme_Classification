@@ -5,9 +5,9 @@ from tqdm import tqdm
 
 ROOT_URL = '../data/facebook'
 
-train_df = pd.read_json('../data/facebook/train.jsonl', lines = True)
-test_df = pd.read_json('../data/facebook/test.jsonl', lines = True)
-dev_df = pd.read_json('../data/facebook/dev.jsonl', lines = True)
+train_df = pd.read_json('../data/facebook/train.jsonl')
+test_df = pd.read_json('../data/facebook/test.jsonl')
+dev_df = pd.read_json('../data/facebook/dev.jsonl')
 
 def segregate_images():
     os.system('mkdir ' + os.path.join(ROOT_URL) + '/train/')
@@ -26,11 +26,11 @@ def segregate_images():
                 new_path = "dev/" + img.strip('img/') + 'g'
             df['img'] = df['img'].replace(img, new_path)
         if(index == 0):
-            df.to_json("../data/facebook/train.jsonl", orient = 'records')
+            df.to_json("../data/facebook/train.json", orient = 'records')
         elif(index == 1):
-            df.to_json("../data/facebook/test.jsonl", orient = 'records')
+            df.to_json("../data/facebook/test.json", orient = 'records')
         else:
-            df.to_json("../data/facebook/dev.jsonl", orient = 'records')
+            df.to_json("../data/facebook/dev.json", orient = 'records')
 
 def separate_classes():
     os.system("mkdir " + os.path.join(ROOT_URL) + '/train/hateful')
@@ -57,11 +57,11 @@ def separate_classes():
                     new_path = "dev/hateful/" + img.strip('dev/')
             df['img'] = df['img'].replace(img, new_path)
         if(index == 0):
-            df.to_json("../data/facebook/train.jsonl", orient = 'records')
+            df.to_json("../data/facebook/train.json")
         elif(index == 1):
-            df.to_json("../data/facebook/test.jsonl", orient = 'records')
+            df.to_json("../data/facebook/test.json")
         else:
-            df.to_json("../data/facebook/dev.jsonl", orient = 'records')
+            df.to_json("../data/facebook/dev.json")
 
 def main():
     segregate_images()
