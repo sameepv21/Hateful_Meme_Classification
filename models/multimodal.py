@@ -1,24 +1,16 @@
 import pandas as pd
-import torch.nn as nn
-import torch.nn.functional as F
 import torch
+import torch.nn as nn
 from torchvision import models
 import torchvision.transforms as transforms
 from transformers import BertModel, BertTokenizer
 from torch.utils.data import Dataset, DataLoader
 import os
 from PIL import Image
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 train_df = pd.read_json("../data/facebook/train.json")
 test_df = pd.read_json("../data/facebook/test.json")
 dev_df = pd.read_json("../data/facebook/dev.json")
-
-# Vectorie textual input
-vectorizer = TfidfVectorizer(min_df = 0.05, sublinear_tf = True)
-tfidf_scores_train = vectorizer.fit_transform(train_df['text'])
-tfidf_scores_test = vectorizer.transform(test_df['text'])
-tfidf_scores_dev = vectorizer.fit_transform(dev_df['text'])
 
 # Global Variable
 BATCH_SIZE = 128
@@ -26,7 +18,13 @@ EPOCHS = 10
 ROOT_PATH = '../data/facebook'
 IMAGE_SIZE = 224*224
 NUM_CLASSES = 2
-TEXTUAL_DIMENSION = tfidf_scores_train.shape[1] # No. of Unique words in tfidf score
+TEXTUAL_DIMENSION = 768
+
+# Define the transformation for preprocessing the image
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
 
 # Initialize the dataset and maintain the dataloader
 class DynamicDataset(Dataset):
@@ -68,36 +66,47 @@ class MultiModal(nn.Module):
         super().__init__()
         
         # ResNet50 architecture
-        self.visual_model = models.resnet50(pretrained = True)
-        self.visual_fc = nn.Linear(IMAGE_SIZE, hidden_dim)
+        resnet50 = models.resnet50(pretrained = True)
+
+        convolution_layers = nn.Sequential(
+            nn.Conv2d(2048, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(512, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.ReLU(),
+        )
+
+        # Freeze parameters
+        for param in resnet50.parameters():
+            param.requires_grad = False
+
+        self.resnet50 = nn.Sequential(*list(resnet50.children())[:-1])
+        self.convolution_layers = convolution_layers
 
         # BERT
         self.text_model = BertModel.from_pretrained('bert-base-uncased')
-        self.text_fc = nn.Linear(TEXTUAL_DIMENSION, hidden_dim)
 
         # Late Fusion
-        self.fusion_fc1 = nn.Linear(hidden_dim * 2, hidden_dim)
-        self.fusion_fc2 = nn.Linear(hidden_dim, NUM_CLASSES)
+        self.fusion_fc = nn.Linear(2048 + TEXTUAL_DIMENSION, 1)
 
         # Dropout layer
         self.dropout = nn.Dropout(0.5)
 
-    def forward(self, visual_input, text_input):
-        # Visual feature extraction
-        visual_output = self.visual_model(visual_input)
-        visual_output = visual_output.view(visual_output.size(0), -1)
-        visual_output = self.dropout(F.relu(self.visual_fc(visual_output)))
-
-        # Textual feature extraction
-        text_output = self.text_model(text_input)[1]
-        text_output = self.dropout(F.relu(self.text_fc(text_output)))
-
-        # Late fusion
-        fusion_output = torch.cat((visual_output, text_output), dim=1)
-        fusion_output = self.dropout(F.relu(self.fusion_fc1(fusion_output)))
-        fusion_output = self.fusion_fc2(fusion_output)
-
-        return fusion_output
+    def forward(self, images, texts):
+        # Extract visual features from images
+        visual_features = self.convolution_layers(self.resnet50(images))
+        visual_features = visual_features.view(visual_features.size(0), -1)
+        
+        # Extract textual features from texts
+        input_ids = tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['input_ids']
+        textual_features = self.text_model(input_ids)[0][:, 0, :]
+        
+        # Concatenate visual and textual features
+        fused_features = torch.cat((visual_features, textual_features), dim=1)
+        
+        # Fuse the multimodal features
+        output = self.fusion_fc(fused_features)
+        
+        return output
     
 model = MultiModal(hidden_dim = 512)
 
@@ -118,7 +127,7 @@ for epoch in range(EPOCHS):
 
     for images, texts, labels in train_loader:
         images = images.to(device)
-        texts = tokenizer(texts).to(device)
+        labels = labels.to(device)
 
         optimizer.zero_grad()
         outputs = model(images, texts)
@@ -131,6 +140,9 @@ for epoch in range(EPOCHS):
 
     model.eval()
     for images, text, labels in dev_loader:
+        images = images.to(device)
+        labels = labels.to(device)
+        
         outputs = model(images, texts)
         loss = criterion(outputs, labels)
         dev_los = loss.item() * images.size(0)
@@ -152,7 +164,7 @@ for epoch in range(EPOCHS):
     with torch.no_grad():
         for images, texts, labels in test_loader:
             images = images.to(device)
-            texts = texts.to(device)
+
             labels = labels.to(device)
 
             outputs = model(images, texts)
