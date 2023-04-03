@@ -20,6 +20,11 @@ ROOT_PATH = '../data/facebook'
 IMAGE_SIZE = 224*224
 NUM_CLASSES = 2
 TEXTUAL_DIMENSION = 768
+CHECKPOINT = './model.py'
+train_loss = 0
+train_acc = 0
+dev_loss = 0
+dev_acc = 0
 
 # Define the transformation for preprocessing the image
 transform = transforms.Compose([
@@ -49,9 +54,9 @@ class DynamicDataset(Dataset):
         return image ,text, label
 
 # Create objects of each set of data
-train_data = DynamicDataset(os.path.join(ROOT_PATH, 'train.json'), transform = transforms.ToTensor())
-dev_data = DynamicDataset(os.path.join(ROOT_PATH, 'dev.json'), transform = transforms.ToTensor())
-test_data = DynamicDataset(os.path.join(ROOT_PATH, 'test.json'), transform = transforms.ToTensor())
+train_data = DynamicDataset(os.path.join(ROOT_PATH, 'train.json'), transform = transform)
+dev_data = DynamicDataset(os.path.join(ROOT_PATH, 'dev.json'), transform = transform)
+test_data = DynamicDataset(os.path.join(ROOT_PATH, 'test.json'), transform = transform)
 
 # Create a dataloader
 train_loader = DataLoader(train_data, batch_size = BATCH_SIZE, shuffle = True)
@@ -118,12 +123,20 @@ optimizer = torch.optim.Adam(model.parameters(), lr = 0.001) # Adaptive learning
 device = torch.device('cuda' if torch.cuda.is_available() else'cpu')
 model.to(device)
 
-for epoch in range(EPOCHS):
-    train_loss = 0
-    train_acc = 0
-    dev_loss = 0
-    dev_acc = 0
+# Load model from a previously saved checkpoint
+if os.exist(CHECKPOINT):
+    checkpoint = torch.load(CHECKPOINT)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    EPOCHS = EPOCHS - checkpoint['epoch']
+    train_loss = checkpoint['train_loss']
+    train_acc = checkpoint['train_acc']
+    dev_loss = checkpoint['dev_loss']
+    dev_acc = checkpoint['dev_acc']
+    test_loss = checkpoint['test_loss']
+    test_acc = checkpoint['test_acc']
 
+for epoch in range(EPOCHS):
     model.train()
 
     for images, texts, labels in tqdm(train_loader):
@@ -184,3 +197,15 @@ for epoch in range(EPOCHS):
     test_acc = test_acc / len(test_data)
 
     print(f"Epoch {epoch+1}/{EPOCHS}: Test Loss = {test_loss:.4f}, Test Accuracy = {test_acc:.4f}")
+
+    torch.save({
+        'epoch': epoch,
+        'model_state_dict': model.state_dict,
+        'optimizer_state_dict': optimizer.state_dict,
+        'train_loss': train_loss,
+        'train_acc': train_acc,
+        'dev_loss': dev_loss,
+        'dev_acc': dev_acc,
+        'test_loss': test_loss,
+        'test_acc': test_acc,
+    }, CHECKPOINT)
