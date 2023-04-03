@@ -166,8 +166,7 @@ for epoch in range(EPOCHS):
             optimizer.step()
 
             train_loss += loss.item() * images.size(0)
-            train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
-        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
+            train_acc = torch.sum(torch.max(outputs, dim = 1)[1] == labels)
         
         model.eval()
         for images, texts, labels in tqdm(dev_loader):
@@ -186,7 +185,8 @@ for epoch in range(EPOCHS):
 
         dev_loss = dev_loss / len(dev_data)
         dev_acc = dev_acc / len(dev_data)
-
+        
+        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
         print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
 
         # Evaluate the model
