@@ -7,6 +7,7 @@ from transformers import BertModel, BertTokenizer
 from torch.utils.data import Dataset, DataLoader
 import os
 from PIL import Image
+from tqdm import tqdm
 
 train_df = pd.read_json("../data/facebook/train.json")
 test_df = pd.read_json("../data/facebook/test.json")
@@ -62,7 +63,7 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 # Create Model
 class MultiModal(nn.Module):
-    def __init__(self, hidden_dim):
+    def __init__(self):
         super().__init__()
         
         # ResNet50 architecture
@@ -86,7 +87,7 @@ class MultiModal(nn.Module):
         self.text_model = BertModel.from_pretrained('bert-base-uncased')
 
         # Late Fusion
-        self.fusion_fc = nn.Linear(2048 + TEXTUAL_DIMENSION, 1)
+        self.fusion_fc = nn.Linear(128 + TEXTUAL_DIMENSION, 1)
 
         # Dropout layer
         self.dropout = nn.Dropout(0.5)
@@ -108,7 +109,7 @@ class MultiModal(nn.Module):
         
         return output
     
-model = MultiModal(hidden_dim = 512)
+model = MultiModal()
 
 criterion = nn.CrossEntropyLoss()
 
@@ -125,9 +126,11 @@ for epoch in range(EPOCHS):
 
     model.train()
 
-    for images, texts, labels in train_loader:
+    for images, texts, labels in tqdm(train_loader):
         images = images.to(device)
         labels = labels.to(device)
+        labels = torch.reshape(labels, (-1, 1))
+        labels = labels.to(dtype = torch.float32)
 
         optimizer.zero_grad()
         outputs = model(images, texts)
@@ -139,9 +142,11 @@ for epoch in range(EPOCHS):
         train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
 
     model.eval()
-    for images, text, labels in dev_loader:
+    for images, text, labels in tqdm(dev_loader):
         images = images.to(device)
         labels = labels.to(device)
+        labels = torch.reshape(labels, (-1, 1))
+        labels = labels.to(dtype = torch.float32)
         
         outputs = model(images, texts)
         loss = criterion(outputs, labels)
@@ -162,10 +167,12 @@ for epoch in range(EPOCHS):
     test_acc = 0
     model.eval()
     with torch.no_grad():
-        for images, texts, labels in test_loader:
+        for images, texts, labels in tqdm(test_loader):
             images = images.to(device)
 
             labels = labels.to(device)
+            labels = torch.reshape(labels, (-1, 1))
+            labels = labels.to(dtype = torch.float32)
 
             outputs = model(images, texts)
             loss = criterion(outputs, labels)
