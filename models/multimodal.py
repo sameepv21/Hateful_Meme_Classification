@@ -19,7 +19,8 @@ EPOCHS = 10
 ROOT_PATH = '../data/facebook'
 IMAGE_SIZE = 224*224
 NUM_CLASSES = 2
-TEXTUAL_DIMENSION = 768
+TEXTUAL_DIMENSION = 512
+VISUAL_DIMENSION = 512
 CHECKPOINT = './model.pt'
 train_loss = 0
 train_acc = 0
@@ -81,10 +82,6 @@ class MultiModal(nn.Module):
             nn.ReLU(),
             nn.Conv2d(1024, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
             nn.ReLU(),
-            nn.Conv2d(512, 256, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
-            nn.ReLU(),
-            nn.Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            nn.ReLU(),
         )
 
         # Freeze parameters
@@ -96,9 +93,19 @@ class MultiModal(nn.Module):
 
         # BERT
         self.text_model = BertModel.from_pretrained('bert-base-uncased')
+        dense_layers = nn.Sequential(
+            nn.Linear(768, 512),
+            nn.ReLU(),
+        )
+        self.dense_layers = dense_layers
 
         # Late Fusion
-        self.fusion_fc = nn.Linear(128 + TEXTUAL_DIMENSION, 1)
+        self.fusion_fc = nn.Sequential(
+            nn.Linear(VISUAL_DIMENSION + TEXTUAL_DIMENSION, 256),
+            nn.Linear(256, 64),
+            nn.Linear(64, 32),
+            nn.Linear(32, 1)
+        )
 
         # Dropout layer
         self.dropout = nn.Dropout(0.5)
@@ -110,7 +117,7 @@ class MultiModal(nn.Module):
         
         # Extract textual features from texts
         input_ids = tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['input_ids']
-        textual_features = self.text_model(input_ids)[0][:, 0, :]
+        textual_features = self.dense_layers(self.text_model(input_ids)[0][:, 0, :])
         
         # Concatenate visual and textual features
         fused_features = torch.cat((visual_features, textual_features), dim=1)
@@ -216,7 +223,8 @@ for epoch in range(EPOCHS):
             'test_loss': test_loss,
             'test_acc': test_acc,
         }, CHECKPOINT)
-    except:
+    except Exception as e:
+        print(e)
         torch.save({
             'epoch': epoch,
             'model_state_dict': model.state_dict,
@@ -228,3 +236,4 @@ for epoch in range(EPOCHS):
             'test_loss': test_loss,
             'test_acc': test_acc,
         }, CHECKPOINT)
+        break
