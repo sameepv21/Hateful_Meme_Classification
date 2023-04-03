@@ -20,11 +20,13 @@ ROOT_PATH = '../data/facebook'
 IMAGE_SIZE = 224*224
 NUM_CLASSES = 2
 TEXTUAL_DIMENSION = 768
-CHECKPOINT = './model.py'
+CHECKPOINT = './model.pt'
 train_loss = 0
 train_acc = 0
 dev_loss = 0
 dev_acc = 0
+test_loss = 0
+test_acc = 0
 
 # Define the transformation for preprocessing the image
 transform = transforms.Compose([
@@ -141,75 +143,88 @@ if os.path.exists(CHECKPOINT):
     test_acc = checkpoint['test_acc']
 
 for epoch in range(EPOCHS):
-    model.train()
+    try:
+        model.train()
 
-    for images, texts, labels in tqdm(train_loader):
-        images = images.to(device)
-        labels = labels.to(device)
-        labels = torch.reshape(labels, (-1, 1))
-        labels = labels.to(dtype = torch.float32)
-
-        optimizer.zero_grad()
-        outputs = model(images, texts)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-
-        train_loss += loss.item() * images.size(0)
-        train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
-
-    model.eval()
-    for images, text, labels in tqdm(dev_loader):
-        images = images.to(device)
-        labels = labels.to(device)
-        labels = torch.reshape(labels, (-1, 1))
-        labels = labels.to(dtype = torch.float32)
-        
-        outputs = model(images, texts)
-        loss = criterion(outputs, labels)
-        dev_los = loss.item() * images.size(0)
-        dev_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
-
-    train_loss = train_loss / len(train_data)
-    train_acc = train_acc / len(train_data)
-
-    dev_loss = dev_loss / len(dev_data)
-    dev_acc = dev_acc / len(dev_data)
-
-    print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
-    print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
-
-    # Evaluate the model
-    test_loss = 0
-    test_acc = 0
-    model.eval()
-    with torch.no_grad():
-        for images, texts, labels in tqdm(test_loader):
+        for images, texts, labels in tqdm(train_loader):
             images = images.to(device)
-
             labels = labels.to(device)
             labels = torch.reshape(labels, (-1, 1))
             labels = labels.to(dtype = torch.float32)
 
+            optimizer.zero_grad()
             outputs = model(images, texts)
             loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
 
-            test_loss += loss.item() * images.size(0)
-            test_acc += torch.sum(torch.max(outputs, dim=1)[1] == labels)
+            train_loss += loss.item() * images.size(0)
+            train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
 
-    test_loss = test_loss / len(test_data)
-    test_acc = test_acc / len(test_data)
+        model.eval()
+        for images, text, labels in tqdm(dev_loader):
+            images = images.to(device)
+            labels = labels.to(device)
+            labels = torch.reshape(labels, (-1, 1))
+            labels = labels.to(dtype = torch.float32)
+            
+            outputs = model(images, texts)
+            loss = criterion(outputs, labels)
+            dev_los = loss.item() * images.size(0)
+            dev_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
 
-    print(f"Epoch {epoch+1}/{EPOCHS}: Test Loss = {test_loss:.4f}, Test Accuracy = {test_acc:.4f}")
+        train_loss = train_loss / len(train_data)
+        train_acc = train_acc / len(train_data)
 
-    torch.save({
-        'epoch': epoch,
-        'model_state_dict': model.state_dict,
-        'optimizer_state_dict': optimizer.state_dict,
-        'train_loss': train_loss,
-        'train_acc': train_acc,
-        'dev_loss': dev_loss,
-        'dev_acc': dev_acc,
-        'test_loss': test_loss,
-        'test_acc': test_acc,
-    }, CHECKPOINT)
+        dev_loss = dev_loss / len(dev_data)
+        dev_acc = dev_acc / len(dev_data)
+
+        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
+        print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
+
+        # Evaluate the model
+        test_loss = 0
+        test_acc = 0
+        model.eval()
+        with torch.no_grad():
+            for images, texts, labels in tqdm(test_loader):
+                images = images.to(device)
+
+                labels = labels.to(device)
+                labels = torch.reshape(labels, (-1, 1))
+                labels = labels.to(dtype = torch.float32)
+
+                outputs = model(images, texts)
+                loss = criterion(outputs, labels)
+
+                test_loss += loss.item() * images.size(0)
+                test_acc += torch.sum(torch.max(outputs, dim=1)[1] == labels)
+
+        test_loss = test_loss / len(test_data)
+        test_acc = test_acc / len(test_data)
+
+        print(f"Epoch {epoch+1}/{EPOCHS}: Test Loss = {test_loss:.4f}, Test Accuracy = {test_acc:.4f}")
+
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict,
+            'optimizer_state_dict': optimizer.state_dict,
+            'train_loss': train_loss,
+            'train_acc': train_acc,
+            'dev_loss': dev_loss,
+            'dev_acc': dev_acc,
+            'test_loss': test_loss,
+            'test_acc': test_acc,
+        }, CHECKPOINT)
+    except:
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict,
+            'optimizer_state_dict': optimizer.state_dict,
+            'train_loss': train_loss,
+            'train_acc': train_acc,
+            'dev_loss': dev_loss,
+            'dev_acc': dev_acc,
+            'test_loss': test_loss,
+            'test_acc': test_acc,
+        }, CHECKPOINT)
