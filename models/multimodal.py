@@ -170,6 +170,10 @@ for epoch in range(EPOCHS):
             train_loss += loss.item() * images.size(0)
             train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
         
+        train_loss = train_loss / len(train_data)
+        train_acc = train_acc / len(train_data)
+        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
+        
         model.eval()
         for images, texts, labels in tqdm(dev_loader):
             images = images.to(device)
@@ -182,35 +186,9 @@ for epoch in range(EPOCHS):
             dev_los = loss.item() * images.size(0)
             dev_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
 
-        train_loss = train_loss / len(train_data)
-        train_acc = train_acc / len(train_data)
-
         dev_loss = dev_loss / len(dev_data)
         dev_acc = dev_acc / len(dev_data)
-        
-        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
         print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
-
-        # Evaluate the model
-        model.eval()
-        with torch.no_grad():
-            for images, texts in tqdm(test_loader):
-                images = images.to(device)
-
-                labels = labels.to(device)
-                labels = torch.reshape(labels, (-1, 1))
-                labels = labels.to(dtype = torch.float32)
-
-                outputs = model(images, texts)
-                loss = criterion(outputs, labels)
-
-                test_loss += loss.item() * images.size(0)
-                test_acc += torch.sum(torch.max(outputs, dim=1)[1] == labels)
-
-        test_loss = test_loss / len(test_data)
-        test_acc = test_acc / len(test_data)
-
-        print(f"Epoch {epoch+1}/{EPOCHS}: Test Loss = {test_loss:.4f}, Test Accuracy = {test_acc:.4f}")
 
         torch.save({
             'epoch': epoch,
