@@ -8,7 +8,6 @@ from torch.utils.data import Dataset, DataLoader
 import os
 from PIL import Image
 from tqdm import tqdm
-import numpy as np
 
 train_df = pd.read_json("../data/facebook/train.json")
 test_df = pd.read_json("../data/facebook/test.json")
@@ -117,7 +116,7 @@ class MultiModal(nn.Module):
         visual_features = visual_features.view(visual_features.size(0), -1)
         
         # Extract textual features from texts
-        input_ids = tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['input_ids']
+        input_ids = (tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['input_ids']).to(device)
         textual_features = self.dense_layers(self.text_model(input_ids)[0][:, 0, :])
         
         # Concatenate visual and textual features
@@ -150,17 +149,15 @@ if os.path.exists(CHECKPOINT):
     test_loss = checkpoint['test_loss']
     test_acc = checkpoint['test_acc']
 
-map_texts = torch.tensor(np.arange(0, 128))
-map_texts.to(device)
-
 for epoch in range(EPOCHS):
     try:
         model.train()
 
         for images, texts, labels in tqdm(train_loader):
             images = images.to(device)
+            labels = labels.to(device)
             labels = torch.reshape(labels, (-1, 1))
-            labels = labels.to(device = device, dtype = torch.float32)
+            labels = labels.to(dtype = torch.float32)
 
             optimizer.zero_grad()
             outputs = model(images, texts)
@@ -170,12 +167,14 @@ for epoch in range(EPOCHS):
 
             train_loss += loss.item() * images.size(0)
             train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
-
+        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
+        
         model.eval()
-        for images, text, labels in tqdm(dev_loader):
+        for images, texts, labels in tqdm(dev_loader):
             images = images.to(device)
+            labels = labels.to(device)
             labels = torch.reshape(labels, (-1, 1))
-            labels = labels.to(device = device, dtype = torch.float32)
+            labels = labels.to(dtype = torch.float32)
             
             outputs = model(images, texts)
             loss = criterion(outputs, labels)
@@ -188,20 +187,17 @@ for epoch in range(EPOCHS):
         dev_loss = dev_loss / len(dev_data)
         dev_acc = dev_acc / len(dev_data)
 
-        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
         print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
 
         # Evaluate the model
-        test_loss = 0
-        test_acc = 0
         model.eval()
         with torch.no_grad():
             for images, texts, labels in tqdm(test_loader):
                 images = images.to(device)
 
-
+                labels = labels.to(device)
                 labels = torch.reshape(labels, (-1, 1))
-                labels = labels.to(device = device, dtype = torch.float32)
+                labels = labels.to(dtype = torch.float32)
 
                 outputs = model(images, texts)
                 loss = criterion(outputs, labels)
@@ -238,5 +234,4 @@ for epoch in range(EPOCHS):
             'test_loss': test_loss,
             'test_acc': test_acc,
         }, CHECKPOINT)
-        os.system("rm -rf " + CHECKPOINT)
         break
