@@ -8,6 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 import os
 from PIL import Image
 from tqdm import tqdm
+import numpy as np
 
 train_df = pd.read_json("../data/facebook/train.json")
 test_df = pd.read_json("../data/facebook/test.json")
@@ -149,15 +150,17 @@ if os.path.exists(CHECKPOINT):
     test_loss = checkpoint['test_loss']
     test_acc = checkpoint['test_acc']
 
+map_texts = torch.tensor(np.arange(0, 128))
+map_texts.to(device)
+
 for epoch in range(EPOCHS):
     try:
         model.train()
 
         for images, texts, labels in tqdm(train_loader):
             images = images.to(device)
-            labels = labels.to(device)
             labels = torch.reshape(labels, (-1, 1))
-            labels = labels.to(dtype = torch.float32)
+            labels = labels.to(device = device, dtype = torch.float32)
 
             optimizer.zero_grad()
             outputs = model(images, texts)
@@ -171,9 +174,8 @@ for epoch in range(EPOCHS):
         model.eval()
         for images, text, labels in tqdm(dev_loader):
             images = images.to(device)
-            labels = labels.to(device)
             labels = torch.reshape(labels, (-1, 1))
-            labels = labels.to(dtype = torch.float32)
+            labels = labels.to(device = device, dtype = torch.float32)
             
             outputs = model(images, texts)
             loss = criterion(outputs, labels)
@@ -197,9 +199,9 @@ for epoch in range(EPOCHS):
             for images, texts, labels in tqdm(test_loader):
                 images = images.to(device)
 
-                labels = labels.to(device)
+
                 labels = torch.reshape(labels, (-1, 1))
-                labels = labels.to(dtype = torch.float32)
+                labels = labels.to(device = device, dtype = torch.float32)
 
                 outputs = model(images, texts)
                 loss = criterion(outputs, labels)
@@ -236,4 +238,5 @@ for epoch in range(EPOCHS):
             'test_loss': test_loss,
             'test_acc': test_acc,
         }, CHECKPOINT)
+        os.system("rm -rf " + CHECKPOINT)
         break
