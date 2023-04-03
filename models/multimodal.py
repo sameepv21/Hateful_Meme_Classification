@@ -52,6 +52,8 @@ class DynamicDataset(Dataset):
             image = self.transform(image)
         
         text = self.df.loc[index, 'text']
+        if 'label' not in self.df.columns:
+            return image, text
         label = self.df.loc[index, 'label']
 
         return image ,text, label
@@ -192,7 +194,7 @@ for epoch in range(EPOCHS):
         # Evaluate the model
         model.eval()
         with torch.no_grad():
-            for images, texts, labels in tqdm(test_loader):
+            for images, texts in tqdm(test_loader):
                 images = images.to(device)
 
                 labels = labels.to(device)
