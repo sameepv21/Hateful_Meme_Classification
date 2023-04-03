@@ -166,7 +166,7 @@ for epoch in range(EPOCHS):
             optimizer.step()
 
             train_loss += loss.item() * images.size(0)
-            train_acc = torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+            train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
         
         model.eval()
         for images, texts, labels in tqdm(dev_loader):
