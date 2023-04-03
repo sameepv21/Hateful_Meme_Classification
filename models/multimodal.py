@@ -140,7 +140,7 @@ model.to(device)
 
 # Load model from a previously saved checkpoint
 if os.path.exists(CHECKPOINT):
-    checkpoint = torch.load(CHECKPOINT)
+    checkpoint = torch.load(CHECKPOINT, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     EPOCHS = EPOCHS - checkpoint['epoch']
