@@ -72,12 +72,16 @@ class MultiModal(nn.Module):
         super().__init__()
         
         # ResNet50 architecture
-        resnet50 = models.resnet50(pretrained = True)
+        resnet50 = models.resnet50(weights = models.ResNet50_Weights.DEFAULT)
 
         convolution_layers = nn.Sequential(
-            nn.Conv2d(2048, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
+            nn.Conv2d(2048, 1024, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
             nn.ReLU(),
-            nn.Conv2d(512, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
+            nn.Conv2d(1024, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(512, 256, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
             nn.ReLU(),
         )
 
@@ -124,7 +128,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else'cpu')
 model.to(device)
 
 # Load model from a previously saved checkpoint
-if os.exist(CHECKPOINT):
+if os.path.exists(CHECKPOINT):
     checkpoint = torch.load(CHECKPOINT)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
