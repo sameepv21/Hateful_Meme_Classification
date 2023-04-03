@@ -1,11 +1,3 @@
-# Tasks
-- [ ] Sampling
-- [ ] DataLoader
-- [ ] Model Building with checkpoints and early stopping
-- [ ] BERT pretrained model selection
-- [ ] Transfer Learning for BERT
-- [ ] Look at encoder-decoder algorithms (for visual and textual features both)
-
 # Introduction
 End-to-end multimodal fusion-based hateful meme classi- fication is a machine learning project that aims to develop a model capable of classifying memes that contain hateful or offensive content. The project uses a combination of computer vision, natural language processing, and multimodal fusion techniques to extract and integrate visual content and text features from memes into a single representation. The trained model can be deployed to a production environment to detect and classify hateful memes in real-time. The project’s goal is to provide a robust and efficient solution for detecting and mitigating harmful content on social media platforms.
 
