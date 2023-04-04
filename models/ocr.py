@@ -1,13 +1,7 @@
-from PIL import Image
+import cv2
 import pytesseract
-import numpy as np
 
-pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+img = cv2.imread('../data/facebook/dev/hateful/01726.png')
+custom_config = r'--psm 12'
 
-#Define path to image
-path_to_image = '/home/sameep/Extra_Projects/Hateful_Meme_Classification/data/facebook/test/01284.png'
-
-img1 = Image.open(path_to_image)
-text = pytesseract.image_to_string(img1)
-
-print("Result: ", text)
+print(pytesseract.image_to_string(img, lang = 'eng', config=custom_config))
