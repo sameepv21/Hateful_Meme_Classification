@@ -8,6 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 import os
 from PIL import Image
 from tqdm import tqdm
+from torchmetrics.classification import BinaryAUROC
 
 train_df = pd.read_json("../data/facebook/train.json")
 test_df = pd.read_json("../data/facebook/test.json")
@@ -150,7 +151,8 @@ if os.path.exists(CHECKPOINT):
     dev_acc = checkpoint['dev_acc']
     test_loss = checkpoint['test_loss']
     test_acc = checkpoint['test_acc']
-    print("Model Loaded Successfully")
+
+metric = BinaryAUROC()
 
 for epoch in range(EPOCHS):
     try:
@@ -173,8 +175,8 @@ for epoch in range(EPOCHS):
         
         train_loss = train_loss / len(train_data)
         train_acc = train_acc / len(train_data)
-        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
-        
+        train_auroc = metric(outputs, labels)
+        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}, Train AUROC = {train_auroc:.4f}")
         model.eval()
         for images, texts, labels in tqdm(dev_loader):
             images = images.to(device)
@@ -189,7 +191,8 @@ for epoch in range(EPOCHS):
 
         dev_loss = dev_loss / len(dev_data)
         dev_acc = dev_acc / len(dev_data)
-        print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
+        dev_auroc = metric(outputs, labels)
+        print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}, Dev AUROC = {dev_auroc:.4f}")
 
         torch.save({
             'epoch': epoch,
