@@ -150,6 +150,7 @@ if os.path.exists(CHECKPOINT):
     dev_acc = checkpoint['dev_acc']
     test_loss = checkpoint['test_loss']
     test_acc = checkpoint['test_acc']
+    print("Model Loaded Successfully")
 
 for epoch in range(EPOCHS):
     try:
@@ -192,8 +193,8 @@ for epoch in range(EPOCHS):
 
         torch.save({
             'epoch': epoch,
-            'model_state_dict': model.state_dict,
-            'optimizer_state_dict': optimizer.state_dict,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
             'train_loss': train_loss,
             'train_acc': train_acc,
             'dev_loss': dev_loss,
@@ -205,8 +206,8 @@ for epoch in range(EPOCHS):
         print(e)
         torch.save({
             'epoch': epoch,
-            'model_state_dict': model.state_dict,
-            'optimizer_state_dict': optimizer.state_dict,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
             'train_loss': train_loss,
             'train_acc': train_acc,
             'dev_loss': dev_loss,

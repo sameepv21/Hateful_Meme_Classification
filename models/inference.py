@@ -10,7 +10,9 @@ from multimodal import MultiModal
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
 # Load the model
-model = torch.load('./model.pt', map_location=device)
+model = MultiModal()
+checkpoint = torch.load('./model.pt', map_location=device)
+model.load_state_dict(checkpoint['model_state_dict'])
 model.eval()
 
 # Define the image transforms
