@@ -8,7 +8,6 @@ from torch.utils.data import Dataset, DataLoader
 import os
 from PIL import Image
 from tqdm import tqdm
-from torchmetrics.classification import BinaryAUROC
 
 train_df = pd.read_json("../data/facebook/train.json")
 test_df = pd.read_json("../data/facebook/test.json")
@@ -27,8 +26,6 @@ train_loss = 0
 train_acc = 0
 dev_loss = 0
 dev_acc = 0
-test_loss = 0
-test_acc = 0
 
 # Define the transformation for preprocessing the image
 transform = transforms.Compose([
@@ -149,10 +146,6 @@ if os.path.exists(CHECKPOINT):
     train_acc = checkpoint['train_acc']
     dev_loss = checkpoint['dev_loss']
     dev_acc = checkpoint['dev_acc']
-    test_loss = checkpoint['test_loss']
-    test_acc = checkpoint['test_acc']
-
-metric = BinaryAUROC()
 
 for epoch in range(EPOCHS):
     try:
@@ -175,8 +168,7 @@ for epoch in range(EPOCHS):
         
         train_loss = train_loss / len(train_data)
         train_acc = train_acc / len(train_data)
-        train_auroc = metric(outputs, labels)
-        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}, Train AUROC = {train_auroc:.4f}")
+        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
         model.eval()
         for images, texts, labels in tqdm(dev_loader):
             images = images.to(device)
@@ -191,8 +183,7 @@ for epoch in range(EPOCHS):
 
         dev_loss = dev_loss / len(dev_data)
         dev_acc = dev_acc / len(dev_data)
-        dev_auroc = metric(outputs, labels)
-        print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}, Dev AUROC = {dev_auroc:.4f}")
+        print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
 
         torch.save({
             'epoch': epoch,
@@ -202,8 +193,6 @@ for epoch in range(EPOCHS):
             'train_acc': train_acc,
             'dev_loss': dev_loss,
             'dev_acc': dev_acc,
-            'test_loss': test_loss,
-            'test_acc': test_acc,
         }, CHECKPOINT)
     except Exception as e:
         print(e)
@@ -215,7 +204,5 @@ for epoch in range(EPOCHS):
             'train_acc': train_acc,
             'dev_loss': dev_loss,
             'dev_acc': dev_acc,
-            'test_loss': test_loss,
-            'test_acc': test_acc,
         }, CHECKPOINT)
         break
