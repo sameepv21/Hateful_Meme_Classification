@@ -10,3 +10,9 @@
 - [ ] Create a fast api
 - [ ] Deploy on free cloud services
 - [ ] Frontend demo
+
+#### Methods to improve the accuracy of the model
+* Fine-Tune individual models
+* Use ensemble learning
+* Hyperparameter tuning
+* Change model architecture including change encoder-decoder.s
