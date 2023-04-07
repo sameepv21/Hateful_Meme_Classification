@@ -103,7 +103,9 @@ class MultiModal(nn.Module):
         self.fusion_fc = nn.Sequential(
             nn.Linear(VISUAL_DIMENSION + TEXTUAL_DIMENSION, 256),
             nn.Linear(256, 64),
+            nn.ReLU(),
             nn.Linear(64, 32),
+            nn.ReLU(),
             nn.Linear(32, 1)
         )
 
