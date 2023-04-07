@@ -26,6 +26,7 @@ train_loss = 0
 train_acc = 0
 dev_loss = 0
 dev_acc = 0
+highest_dev_acc = 0
 
 # Define the transformation for preprocessing the image
 transform = transforms.Compose([
@@ -187,24 +188,26 @@ for epoch in range(EPOCHS):
         dev_acc = dev_acc / len(dev_data)
         print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
 
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'train_loss': train_loss,
-            'train_acc': train_acc,
-            'dev_loss': dev_loss,
-            'dev_acc': dev_acc,
-        }, CHECKPOINT)
+        if(highest_dev_acc < dev_acc):
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss': train_loss,
+                'train_acc': train_acc,
+                'dev_loss': dev_loss,
+                'dev_acc': dev_acc,
+            }, CHECKPOINT)
     except Exception as e:
         print(e)
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'train_loss': train_loss,
-            'train_acc': train_acc,
-            'dev_loss': dev_loss,
-            'dev_acc': dev_acc,
-        }, CHECKPOINT)
+        if(highest_dev_acc < dev_acc):
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss': train_loss,
+                'train_acc': train_acc,
+                'dev_loss': dev_loss,
+                'dev_acc': dev_acc,
+            }, CHECKPOINT)
         break
