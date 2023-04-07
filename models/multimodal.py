@@ -186,6 +186,7 @@ for epoch in range(EPOCHS):
         print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
 
         if(highest_dev_acc < dev_acc):
+            highest_dev_acc = dev_acc
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
@@ -198,6 +199,7 @@ for epoch in range(EPOCHS):
     except Exception as e:
         print(e)
         if(highest_dev_acc < dev_acc):
+            highest_dev_acc = dev_acc
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
