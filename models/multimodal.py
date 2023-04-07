@@ -10,7 +10,6 @@ from PIL import Image
 from tqdm import tqdm
 
 train_df = pd.read_json("../data/facebook/train.json")
-test_df = pd.read_json("../data/facebook/test.json")
 dev_df = pd.read_json("../data/facebook/dev.json")
 
 # Global Variable
@@ -60,12 +59,10 @@ class DynamicDataset(Dataset):
 # Create objects of each set of data
 train_data = DynamicDataset(os.path.join(ROOT_PATH, 'train.json'), transform = transform)
 dev_data = DynamicDataset(os.path.join(ROOT_PATH, 'dev.json'), transform = transform)
-test_data = DynamicDataset(os.path.join(ROOT_PATH, 'test.json'), transform = transform)
 
 # Create a dataloader
 train_loader = DataLoader(train_data, batch_size = BATCH_SIZE, shuffle = True)
 dev_loader = DataLoader(dev_data, batch_size = BATCH_SIZE, shuffle = True)
-test_loader = DataLoader(test_data, batch_size = BATCH_SIZE, shuffle = False)
 
 # Bert Tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
