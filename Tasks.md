@@ -15,4 +15,13 @@
 * Fine-Tune individual models
 * Use ensemble learning
 * Hyperparameter tuning
-* Change model architecture including change encoder-decoder.s
+* Change model architecture including change encoder-decoder.
+
+# Suggestions
+* Fine tune individual models
+* Perform hyperparameter optimization
+    * Learning Rate
+    * Batch Size
+    * Dropout Rate
+    * Number of neurons in a dense layer
+* See how each individual model is performing.
