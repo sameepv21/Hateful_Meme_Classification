@@ -67,8 +67,9 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 # Create Model
 class MultiModal(nn.Module):
-    def __init__(self, params):
+    def __init__(self, params, device):
         super().__init__()
+        self.device = device
         
         # ResNet50 architecture
         resnet50 = models.resnet50(weights = models.ResNet50_Weights.DEFAULT)
@@ -114,7 +115,7 @@ class MultiModal(nn.Module):
         visual_features = visual_features.view(visual_features.size(0), -1)
         
         # Extract textual features from texts
-        input_ids = (tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['input_ids']).to(device)
+        input_ids = (tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['input_ids']).to(self.device)
         textual_features = self.dense_layers(self.text_model(input_ids)[0][:, 0, :])
         
         # Concatenate visual and textual features
@@ -126,6 +127,8 @@ class MultiModal(nn.Module):
         return output
 
 def train_and_evaluate(params, model):
+    global EPOCHS,CHECKPOINT,train_loss,train_acc,dev_loss,dev_acc,highest_dev_acc
+
     # Create a dataloader
     train_loader = DataLoader(train_data, batch_size = params['batch_size'], shuffle = True)
     dev_loader = DataLoader(dev_data, batch_size = params['batch_size'], shuffle = True)
@@ -222,7 +225,9 @@ def objective(trial):
         'dropout_rate': trial.suggest_uniform('dropout_rate', 0, 1)
     }
 
-    model = MultiModal(params)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = MultiModal(params, device)
 
     return train_and_evaluate(params, model)
 
