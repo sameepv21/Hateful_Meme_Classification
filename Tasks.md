@@ -26,6 +26,7 @@
     * Dropout Rate
     * Number of neurons in a dense layer
 * See how each individual model is performing.
+* Training the models individually and then running the ensemble also provides high level of accuracy.
 
 # Small Tasks that are left
 * Modify tasks to get AUROC score
