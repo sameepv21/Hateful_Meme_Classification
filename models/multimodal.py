@@ -3,13 +3,11 @@ import torch
 import torch.nn as nn
 from torchvision import models
 import torchvision.transforms as transforms
-import torch.optim as optim
 from transformers import BertModel, BertTokenizer
 from torch.utils.data import Dataset, DataLoader
 import os
 from PIL import Image
 from tqdm import tqdm
-import optuna
 
 train_df = pd.read_json("../data/facebook/train.json")
 dev_df = pd.read_json("../data/facebook/dev.json")
@@ -62,14 +60,17 @@ class DynamicDataset(Dataset):
 train_data = DynamicDataset(os.path.join(ROOT_PATH, 'train.json'), transform = transform)
 dev_data = DynamicDataset(os.path.join(ROOT_PATH, 'dev.json'), transform = transform)
 
+# Create a dataloader
+train_loader = DataLoader(train_data, batch_size = BATCH_SIZE, shuffle = True)
+dev_loader = DataLoader(dev_data, batch_size = BATCH_SIZE, shuffle = True)
+
 # Bert Tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
 # Create Model
 class MultiModal(nn.Module):
-    def __init__(self, params, device):
+    def __init__(self):
         super().__init__()
-        self.device = device
         
         # ResNet50 architecture
         resnet50 = models.resnet50(weights = models.ResNet50_Weights.DEFAULT)
@@ -107,7 +108,7 @@ class MultiModal(nn.Module):
         )
 
         # Dropout layer
-        self.dropout = nn.Dropout(params['dropout_rate'])
+        self.dropout = nn.Dropout(0.5)
 
     def forward(self, images, texts):
         # Extract visual features from images
@@ -115,7 +116,7 @@ class MultiModal(nn.Module):
         visual_features = visual_features.view(visual_features.size(0), -1)
         
         # Extract textual features from texts
-        input_ids = (tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['input_ids']).to(self.device)
+        input_ids = (tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['input_ids']).to(device)
         textual_features = self.dense_layers(self.text_model(input_ids)[0][:, 0, :])
         
         # Concatenate visual and textual features
@@ -125,111 +126,87 @@ class MultiModal(nn.Module):
         output = self.fusion_fc(fused_features)
         
         return output
+    
+model = MultiModal()
 
-def train_and_evaluate(params, model):
-    global EPOCHS,CHECKPOINT,train_loss,train_acc,dev_loss,dev_acc,highest_dev_acc
+criterion = nn.CrossEntropyLoss()
 
-    # Create a dataloader
-    train_loader = DataLoader(train_data, batch_size = params['batch_size'], shuffle = True)
-    dev_loader = DataLoader(dev_data, batch_size = params['batch_size'], shuffle = True)
+optimizer = torch.optim.Adam(model.parameters(), lr = 0.001) # Adaptive learning rate left
 
-    criterion = nn.CrossEntropyLoss()
+device = torch.device('cuda' if torch.cuda.is_available() else'cpu')
+model.to(device)
 
-    optimizer = getattr(optim, params['optimizer'])(model.parameters(), lr= params['learning_rate'])
+# Load model from a previously saved checkpoint
+if os.path.exists(CHECKPOINT):
+    checkpoint = torch.load(CHECKPOINT, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    EPOCHS = EPOCHS - checkpoint['epoch']
+    train_loss = checkpoint['train_loss']
+    train_acc = checkpoint['train_acc']
+    dev_loss = checkpoint['dev_loss']
+    dev_acc = checkpoint['dev_acc']
 
-    device = torch.device('cuda' if torch.cuda.is_available() else'cpu')
-    model.to(device)
+for epoch in range(EPOCHS):
+    try:
+        model.train()
 
-    # Load model from a previously saved checkpoint
-    if os.path.exists(CHECKPOINT):
-        checkpoint = torch.load(CHECKPOINT, map_location=device)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        EPOCHS = EPOCHS - checkpoint['epoch']
-        train_loss = checkpoint['train_loss']
-        train_acc = checkpoint['train_acc']
-        dev_loss = checkpoint['dev_loss']
-        dev_acc = checkpoint['dev_acc']
+        for images, texts, labels in tqdm(train_loader):
+            images = images.to(device)
+            labels = labels.to(device)
+            labels = torch.reshape(labels, (-1, 1))
+            labels = labels.to(dtype = torch.float32)
 
-    for epoch in range(EPOCHS):
-        try:
-            model.train()
+            optimizer.zero_grad()
+            outputs = model(images, texts)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
 
-            for images, texts, labels in tqdm(train_loader):
-                images = images.to(device)
-                labels = labels.to(device)
-                labels = torch.reshape(labels, (-1, 1))
-                labels = labels.to(dtype = torch.float32)
-
-                optimizer.zero_grad()
-                outputs = model(images, texts)
-                loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
-
-                train_loss += loss.item() * images.size(0)
-                train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+            train_loss += loss.item() * images.size(0)
+            train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+        
+        train_loss = train_loss / len(train_data)
+        train_acc = train_acc / len(train_data)
+        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
+        model.eval()
+        for images, texts, labels in tqdm(dev_loader):
+            images = images.to(device)
+            labels = labels.to(device)
+            labels = torch.reshape(labels, (-1, 1))
+            labels = labels.to(dtype = torch.float32)
             
-            train_loss = train_loss / len(train_data)
-            train_acc = train_acc / len(train_data)
-            print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
-            model.eval()
-            for images, texts, labels in tqdm(dev_loader):
-                images = images.to(device)
-                labels = labels.to(device)
-                labels = torch.reshape(labels, (-1, 1))
-                labels = labels.to(dtype = torch.float32)
-                
-                outputs = model(images, texts)
-                loss = criterion(outputs, labels)
-                dev_loss = loss.item() * images.size(0)
-                dev_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+            outputs = model(images, texts)
+            loss = criterion(outputs, labels)
+            dev_los = loss.item() * images.size(0)
+            dev_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
 
-            dev_loss = dev_loss / len(dev_data)
-            dev_acc = dev_acc / len(dev_data)
-            print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
+        dev_loss = dev_loss / len(dev_data)
+        dev_acc = dev_acc / len(dev_data)
+        print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
 
-            if(highest_dev_acc < dev_acc):
-                highest_dev_acc = dev_acc
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'train_loss': train_loss,
-                    'train_acc': train_acc,
-                    'dev_loss': dev_loss,
-                    'dev_acc': dev_acc,
-                }, CHECKPOINT)
-            
-        except Exception as e:
-            print(e)
-            if(highest_dev_acc < dev_acc):
-                highest_dev_acc = dev_acc
-                torch.save({
-                    'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'train_loss': train_loss,
-                    'train_acc': train_acc,
-                    'dev_loss': dev_loss,
-                    'dev_acc': dev_acc,
-                }, CHECKPOINT)
-            return dev_acc
-    return dev_acc
-
-def objective(trial):
-    params = {
-        'learning_rate': trial.suggest_uniform('learning_rate', 1e-5, 1e-1),
-        'optimizer': trial.suggest_categorical('optimizer', ['Adam', 'RMSprop', 'SGD']),
-        'batch_size': trial.suggest_int("batch_size", 16, 128),
-        'dropout_rate': trial.suggest_uniform('dropout_rate', 0, 1)
-    }
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    model = MultiModal(params, device)
-
-    return train_and_evaluate(params, model)
-
-study = optuna.create_study(direction = 'maximize')
-study.optimize(objective, n_trials = EPOCHS)
+        if(highest_dev_acc < dev_acc):
+            highest_dev_acc = dev_acc
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss': train_loss,
+                'train_acc': train_acc,
+                'dev_loss': dev_loss,
+                'dev_acc': dev_acc,
+            }, CHECKPOINT)
+    except Exception as e:
+        print(e)
+        if(highest_dev_acc < dev_acc):
+            highest_dev_acc = dev_acc
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss': train_loss,
+                'train_acc': train_acc,
+                'dev_loss': dev_loss,
+                'dev_acc': dev_acc,
+            }, CHECKPOINT)
+        break

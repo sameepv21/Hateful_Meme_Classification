@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 import pytesseract
 from PIL import Image
 from multimodal import MultiModal
+from ocr import OCR
 
 # Define the device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -24,9 +25,8 @@ image_transforms = transforms.Compose([
 
 # Define the OCR function
 def ocr(image_path):
-    image = Image.open(image_path)
-    text = pytesseract.image_to_string(image)
-    return text
+    ocr = OCR(image_path)
+    return ocr.detect_text()
 
 # Define the inference function
 def predict(image_path):
@@ -39,10 +39,11 @@ def predict(image_path):
     
     # Pass the image through the model
     with torch.no_grad():
+        model.eval()
         output = model(image)
         output = F.sigmoid(output)
     
     # Return the prediction and the extracted text
     return output.item(), text
 
-print(predict("/home/sameep/Extra_Projects/Hateful_Meme_Classification/data/facebook/test/01284.png"))
+print(predict("../data/facebook/dev/hateful/01726.png"))
