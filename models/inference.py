@@ -2,7 +2,6 @@ import __main__
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-import pytesseract
 from PIL import Image
 from multimodal import MultiModal
 from ocr import OCR
