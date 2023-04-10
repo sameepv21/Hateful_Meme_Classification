@@ -46,4 +46,4 @@ def predict(image_path):
     # Return the prediction and the extracted text
     return output.item(), text
 
-print(predict("../data/facebook/dev/hateful/01726.png"))
+print(predict("../data/facebook/test/01284.png"))
