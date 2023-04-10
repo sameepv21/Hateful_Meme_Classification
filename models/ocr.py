@@ -22,5 +22,5 @@ class OCR:
         texts = response.text_annotations[0].description
         return texts.replace('\n', ' ')
     
-ocr = OCR('../data/facebook/dev/hateful/01726.png')
-print(ocr.detect_text())
+# ocr = OCR('../data/facebook/dev/hateful/01726.png')
+# print(ocr.detect_text())

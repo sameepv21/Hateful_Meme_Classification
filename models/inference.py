@@ -38,7 +38,6 @@ def predict(image_path):
     
     # Pass the image through the model
     with torch.no_grad():
-        model.eval()
         output = model(image)
         output = F.sigmoid(output)
     
