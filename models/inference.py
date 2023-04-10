@@ -38,7 +38,7 @@ def predict(image_path):
     
     # Pass the image through the model
     with torch.no_grad():
-        output = model(image)
+        output = model(image, text)
         output = F.sigmoid(output)
     
     # Return the prediction and the extracted text
