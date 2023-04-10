@@ -1,12 +1,13 @@
+# Tasks
 - [ ] Improve the accuracy of model
-    - [ ] Change model layers / architecture
-    - [ ] Resnet150 with transfer learning
-    - [ ] Change dimension params
-    - [ ] Change Learning Rate
+    - [x] Change model layers / architecture
+    - [x] Resnet150 with transfer learning
+    - [x] Change dimension params
+    - [x] Change Learning Rate
     - [ ] Use an entirely different encoder-decoder architecture
     - [ ] Use hyperparameter optimization
 - [ ] OCR module and inference pipeline
-    - [ ] Research on various techniques in OCR
+    - [x] Research on various techniques in OCR
     - [ ] Use trial version of Google OCR
 - [ ] Create a fast api
 - [ ] Deploy on free cloud services
