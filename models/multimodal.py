@@ -74,11 +74,9 @@ class MultiModal(nn.Module):
         super().__init__()
         
         # ResNet50 architecture
-        resnet50 = models.resnet50(weights = models.ResNet50_Weights.DEFAULT)
+        resnet50 = AutoModel.from_pretrained('uclanlp/visualbert-vqa-coco-pre')
 
         convolution_layers = nn.Sequential(
-            nn.Conv2d(3072, 2048, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
-            nn.ReLU(),
             nn.Conv2d(2048, 1024, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
             nn.ReLU(),
             nn.Conv2d(1024, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
@@ -88,9 +86,8 @@ class MultiModal(nn.Module):
         # Freeze parameters
         for param in resnet50.parameters():
             param.requires_grad = False
-
-        model_name = 'jiasenlu/vl-bert-base'
-        self.resnet50 = AutoModel.from_pretrained(model_name)
+        
+        self.resnet50 = resnet50
         self.convolution_layers = convolution_layers
 
         # BERT
@@ -103,7 +100,7 @@ class MultiModal(nn.Module):
 
         # Late Fusion
         self.fusion_fc = nn.Sequential(
-            nn.Linear(VISUAL_DIMENSION, 256),
+            nn.Linear((VISUAL_DIMENSION + TEXTUAL_DIMENSION), 256),
             nn.ReLU(),
             nn.Linear(256, 64),
             nn.ReLU(),
@@ -132,85 +129,86 @@ class MultiModal(nn.Module):
         
         return output
 
-# # Initialize the model    
-# model = MultiModal()
-# model.to(device)
+# Initialize the model    
+model = MultiModal()
+model.to(device)
 
-# # Define the loss function and optimizer
-# criterion = nn.CrossEntropyLoss()
-# optimizer = torch.optim.Adam(model.parameters(), lr = 0.001) # Adaptive learning rate left
+# Define the loss function and optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr = 0.001) # Adaptive learning rate left
 
-# # Load model from a previously saved checkpoint
-# if os.path.exists(CHECKPOINT):
-#     checkpoint = torch.load(CHECKPOINT, map_location=device)
-#     model.load_state_dict(checkpoint['model_state_dict'])
-#     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-#     EPOCHS = EPOCHS - checkpoint['epoch']
-#     train_loss = checkpoint['train_loss']
-#     train_acc = checkpoint['train_acc']
-#     dev_loss = checkpoint['dev_loss']
-#     dev_acc = checkpoint['dev_acc']
+# Load model from a previously saved checkpoint
+if os.path.exists(CHECKPOINT):
+    checkpoint = torch.load(CHECKPOINT, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    EPOCHS = EPOCHS - checkpoint['epoch']
+    train_loss = checkpoint['train_loss']
+    train_acc = checkpoint['train_acc']
+    dev_loss = checkpoint['dev_loss']
+    dev_acc = checkpoint['dev_acc']
 
-# for epoch in range(EPOCHS):
-#     try:
-#         model.train()
+for epoch in range(EPOCHS):
+    try:
+        model.train()
 
-#         for images, texts, labels in tqdm(train_loader):
-#             images = images.to(device)
-#             labels = labels.to(device)
-#             labels = torch.reshape(labels, (-1, 1))
-#             labels = labels.to(dtype = torch.float32)
+        for images, texts, labels in tqdm(train_loader):
+            images = images.to(device)
+            labels = labels.to(device)
+            labels = torch.reshape(labels, (-1, 1))
+            labels = labels.to(dtype = torch.float32)
 
-#             optimizer.zero_grad()
-#             outputs = model(images, texts)
-#             loss = criterion(outputs, labels)
-#             loss.backward()
-#             optimizer.step()
+            optimizer.zero_grad()
+            outputs = model(images, texts)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
 
-#             train_loss += loss.item() * images.size(0)
-#             train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+            train_loss += loss.item() * images.size(0)
+            train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
         
-#         train_loss = train_loss / len(train_data)
-#         train_acc = train_acc / len(train_data)
-#         print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
-#         model.eval()
-#         for images, texts, labels in tqdm(dev_loader):
-#             images = images.to(device)
-#             labels = labels.to(device)
-#             labels = torch.reshape(labels, (-1, 1))
-#             labels = labels.to(dtype = torch.float32)
+        train_loss = train_loss / len(train_data)
+        train_acc = train_acc / len(train_data)
+        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
+        model.eval()
+        for images, texts, labels in tqdm(dev_loader):
+            images = images.to(device)
+            labels = labels.to(device)
+            labels = torch.reshape(labels, (-1, 1))
+            labels = labels.to(dtype = torch.float32)
             
-#             outputs = model(images, texts)
-#             loss = criterion(outputs, labels)
-#             dev_los = loss.item() * images.size(0)
-#             dev_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+            outputs = model(images, texts)
+            loss = criterion(outputs, labels)
+            dev_los = loss.item() * images.size(0)
+            dev_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
 
-#         dev_loss = dev_loss / len(dev_data)
-#         dev_acc = dev_acc / len(dev_data)
-#         print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
+        dev_loss = dev_loss / len(dev_data)
+        dev_acc = dev_acc / len(dev_data)
+        print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
 
-#         if(highest_dev_acc < dev_acc):
-#             highest_dev_acc = dev_acc
-#             torch.save({
-#                 'epoch': epoch,
-#                 'model_state_dict': model.state_dict(),
-#                 'optimizer_state_dict': optimizer.state_dict(),
-#                 'train_loss': train_loss,
-#                 'train_acc': train_acc,
-#                 'dev_loss': dev_loss,
-#                 'dev_acc': dev_acc,
-#             }, CHECKPOINT)
-#     except Exception as e:
-#         print(e)
-#         if(highest_dev_acc < dev_acc):
-#             highest_dev_acc = dev_acc
-#             torch.save({
-#                 'epoch': epoch,
-#                 'model_state_dict': model.state_dict(),
-#                 'optimizer_state_dict': optimizer.state_dict(),
-#                 'train_loss': train_loss,
-#                 'train_acc': train_acc,
-#                 'dev_loss': dev_loss,
-#                 'dev_acc': dev_acc,
-#             }, CHECKPOINT)
-#         break
+        if(highest_dev_acc < dev_acc):
+            highest_dev_acc = dev_acc
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss': train_loss,
+                'train_acc': train_acc,
+                'dev_loss': dev_loss,
+                'dev_acc': dev_acc,
+            }, CHECKPOINT)
+    except Exception as e:
+        print(e)
+        if(highest_dev_acc < dev_acc):
+            highest_dev_acc = dev_acc
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'train_loss': train_loss,
+                'train_acc': train_acc,
+                'dev_loss': dev_loss,
+                'dev_acc': dev_acc,
+            }, CHECKPOINT)
+        os.system("rm -rf ./model.pt")
+        break
