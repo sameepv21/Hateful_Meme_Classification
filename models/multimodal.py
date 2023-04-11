@@ -73,20 +73,36 @@ class MultiModal(nn.Module):
     def __init__(self):
         super().__init__()
 
-        # ResNet50 architecture
-        resnet50 = AutoModel.from_pretrained('uclanlp/visualbert-vqa-coco-pre')
+        # Visual Bert architecture
+        visual_bert = AutoModel.from_pretrained('uclanlp/visualbert-vqa-coco-pre')
 
         convolution_layers = nn.Sequential(
             nn.Conv2d(768, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
             nn.ReLU(),
         )
 
+        # resnet50 for extracting features
+        resnet50 = models.resnet50(weights = models.ResNet50_Weights.DEFAULT)
+
+        convolution_layers_2 = nn.Sequential(
+            nn.Conv2d(2048, 1024, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
+            nn.ReLU(),
+            nn.Conv2d(1024, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
+            nn.ReLU(),
+        )
+
         # Freeze parameters
         for param in resnet50.parameters():
             param.requires_grad = False
+
+        # Freeze parameters
+        for param in visual_bert.parameters():
+            param.requires_grad = False
         
+        self.visual_bert = visual_bert
         self.resnet50 = resnet50
         self.convolution_layers = convolution_layers
+        self.convolution_layers_2 = convolution_layers_2
 
         # BERT
         self.text_model = BertModel.from_pretrained('bert-base-uncased')
@@ -113,13 +129,17 @@ class MultiModal(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, images, texts):
+        # Extract visual features from images
+        visual_features = self.convolution_layers_2(self.resnet50(images))
+        visual_features = visual_features.view(visual_features.size(0), -1)
+
         # Generate tokens for input ids and attention mask
         inputs = tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')
         input_ids = inputs['input_ids'].to(device)
         attention_mask = inputs['attention_mask'].to(device)
         
         # Get the visual and textual features
-        visual_features, textual_features = self.convolution_layers(self.resnet50(input_ids = input_ids, attention_mask = attention_mask))
+        visual_features, textual_features = self.convolution_layers(self.visual_bert(input_ids = input_ids, attention_mask = attention_mask, visual_embeds = visual_features))
 
         # Concatenate visual and textual features
         fused_features = torch.cat((visual_features, textual_features), dim=1)
@@ -210,5 +230,5 @@ for epoch in range(EPOCHS):
                 'dev_loss': dev_loss,
                 'dev_acc': dev_acc,
             }, CHECKPOINT)
-        os.system("rm -rf ./model.pt")
+        os.system("rm -rf " + CHECKPOINT)
         break
