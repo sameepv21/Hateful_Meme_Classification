@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torchvision import models
 import torchvision.transforms as transforms
-from transformers import BertModel, BertTokenizer
+from transformers import BertModel, BertTokenizer, AutoModel
 from torch.utils.data import Dataset, DataLoader
 import os
 from PIL import Image
@@ -77,6 +77,8 @@ class MultiModal(nn.Module):
         resnet50 = models.resnet50(weights = models.ResNet50_Weights.DEFAULT)
 
         convolution_layers = nn.Sequential(
+            nn.Conv2d(3072, 2048, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
+            nn.ReLU(),
             nn.Conv2d(2048, 1024, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
             nn.ReLU(),
             nn.Conv2d(1024, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
@@ -87,7 +89,8 @@ class MultiModal(nn.Module):
         for param in resnet50.parameters():
             param.requires_grad = False
 
-        self.resnet50 = nn.Sequential(*list(resnet50.children())[:-1])
+        model_name = 'jiasenlu/vl-bert-base'
+        self.resnet50 = AutoModel.from_pretrained(model_name)
         self.convolution_layers = convolution_layers
 
         # BERT
@@ -100,7 +103,8 @@ class MultiModal(nn.Module):
 
         # Late Fusion
         self.fusion_fc = nn.Sequential(
-            nn.Linear(VISUAL_DIMENSION + TEXTUAL_DIMENSION, 256),
+            nn.Linear(VISUAL_DIMENSION, 256),
+            nn.ReLU(),
             nn.Linear(256, 64),
             nn.ReLU(),
             nn.Linear(64, 32),
