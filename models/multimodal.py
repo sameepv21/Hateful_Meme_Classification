@@ -66,7 +66,7 @@ train_loader = DataLoader(train_data, batch_size = BATCH_SIZE, shuffle = True)
 dev_loader = DataLoader(dev_data, batch_size = BATCH_SIZE, shuffle = True)
 
 # Bert Tokenizer
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 
 # Create Model
 class MultiModal(nn.Module):
@@ -114,11 +114,12 @@ class MultiModal(nn.Module):
 
     def forward(self, images, texts):
         # Generate tokens for input ids and attention mask
-        input_ids = (tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['input_ids']).to(device)
-        attention_mask = (tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['attention_mask']).to(device)
-
+        inputs = tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')
+        input_ids = inputs['input_ids'].to(device)
+        attention_mask = inputs['attention_mask'].to(device)
+        
         # Get the visual and textual features
-        visual_features, textual_features = self.convolution_layers(self.resnet50(input_ids, attention_mask, images))
+        visual_features, textual_features = self.convolution_layers(self.resnet50(input_ids = input_ids, attention_mask = attention_mask))
 
         # Concatenate visual and textual features
         fused_features = torch.cat((visual_features, textual_features), dim=1)
