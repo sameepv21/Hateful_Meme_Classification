@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torchvision import models
 import torchvision.transforms as transforms
-from transformers import BertModel, BertTokenizer, AutoModel
+from transformers import BertModel, BertTokenizer, AutoModel, VisualBertModel, AutoTokenizer
 from torch.utils.data import Dataset, DataLoader
 import os
 from PIL import Image
@@ -77,9 +77,7 @@ class MultiModal(nn.Module):
         resnet50 = AutoModel.from_pretrained('uclanlp/visualbert-vqa-coco-pre')
 
         convolution_layers = nn.Sequential(
-            nn.Conv2d(2048, 1024, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
-            nn.ReLU(),
-            nn.Conv2d(1024, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
+            nn.Conv2d(768, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
             nn.ReLU(),
         )
 
@@ -100,7 +98,9 @@ class MultiModal(nn.Module):
 
         # Late Fusion
         self.fusion_fc = nn.Sequential(
-            nn.Linear((VISUAL_DIMENSION + TEXTUAL_DIMENSION), 256),
+            nn.Linear((VISUAL_DIMENSION + TEXTUAL_DIMENSION), 512),
+            nn.ReLU(),
+            nn.Linear(512, 256),
             nn.ReLU(),
             nn.Linear(256, 64),
             nn.ReLU(),
@@ -113,14 +113,13 @@ class MultiModal(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, images, texts):
-        # Extract visual features from images
-        visual_features = self.convolution_layers(self.resnet50(images))
-        visual_features = visual_features.view(visual_features.size(0), -1)
-        
-        # Extract textual features from texts
+        # Generate tokens for input ids and attention mask
         input_ids = (tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['input_ids']).to(device)
-        textual_features = self.dense_layers(self.text_model(input_ids)[0][:, 0, :])
-        
+        attention_mask = (tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')['attention_mask']).to(device)
+
+        # Get the visual and textual features
+        visual_features, textual_features = self.convolution_layers(self.resnet50(input_ids, attention_mask, images))
+
         # Concatenate visual and textual features
         fused_features = torch.cat((visual_features, textual_features), dim=1)
         
