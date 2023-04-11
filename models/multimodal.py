@@ -72,7 +72,7 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 class MultiModal(nn.Module):
     def __init__(self):
         super().__init__()
-        
+
         # ResNet50 architecture
         resnet50 = AutoModel.from_pretrained('uclanlp/visualbert-vqa-coco-pre')
 
