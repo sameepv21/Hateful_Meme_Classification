@@ -124,7 +124,7 @@ class MultiModal(nn.Module):
         attention_mask = inputs['attention_mask'].to(device)
 
         # Get the textual features
-        output = self.convolution_layers(
+        textual_features = self.dense_layers(
             self.visual_bert(
                 input_ids = input_ids,
                 attention_mask = attention_mask,
@@ -133,7 +133,7 @@ class MultiModal(nn.Module):
         )
         
         # Concatenate visual and textual features
-        fused_features = torch.cat(output, dim=1)
+        fused_features = torch.cat((visual_features, textual_features), dim=1)
         
         # Fuse the multimodal features
         output = self.fusion_fc(fused_features)
@@ -160,66 +160,66 @@ if os.path.exists(CHECKPOINT):
     dev_acc = checkpoint['dev_acc']
 
 for epoch in range(EPOCHS):
-    try:
-        model.train()
+    # try:
+    model.train()
 
-        for images, texts, labels in tqdm(train_loader):
-            images = images.to(device)
-            labels = labels.to(device)
-            labels = torch.reshape(labels, (-1, 1))
-            labels = labels.to(dtype = torch.float32)
+    for images, texts, labels in tqdm(train_loader):
+        images = images.to(device)
+        labels = labels.to(device)
+        labels = torch.reshape(labels, (-1, 1))
+        labels = labels.to(dtype = torch.float32)
 
-            optimizer.zero_grad()
-            outputs = model(images, texts)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+        optimizer.zero_grad()
+        outputs = model(images, texts)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
 
-            train_loss += loss.item() * images.size(0)
-            train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+        train_loss += loss.item() * images.size(0)
+        train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+    
+    train_loss = train_loss / len(train_data)
+    train_acc = train_acc / len(train_data)
+    print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
+    model.eval()
+    for images, texts, labels in tqdm(dev_loader):
+        images = images.to(device)
+        labels = labels.to(device)
+        labels = torch.reshape(labels, (-1, 1))
+        labels = labels.to(dtype = torch.float32)
         
-        train_loss = train_loss / len(train_data)
-        train_acc = train_acc / len(train_data)
-        print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
-        model.eval()
-        for images, texts, labels in tqdm(dev_loader):
-            images = images.to(device)
-            labels = labels.to(device)
-            labels = torch.reshape(labels, (-1, 1))
-            labels = labels.to(dtype = torch.float32)
-            
-            outputs = model(images, texts)
-            loss = criterion(outputs, labels)
-            dev_los = loss.item() * images.size(0)
-            dev_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+        outputs = model(images, texts)
+        loss = criterion(outputs, labels)
+        dev_los = loss.item() * images.size(0)
+        dev_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
 
-        dev_loss = dev_loss / len(dev_data)
-        dev_acc = dev_acc / len(dev_data)
-        print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
+    dev_loss = dev_loss / len(dev_data)
+    dev_acc = dev_acc / len(dev_data)
+    print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
 
-        if(highest_dev_acc < dev_acc):
-            highest_dev_acc = dev_acc
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'train_loss': train_loss,
-                'train_acc': train_acc,
-                'dev_loss': dev_loss,
-                'dev_acc': dev_acc,
-            }, CHECKPOINT)
-    except Exception as e:
-        print(e)
-        if(highest_dev_acc < dev_acc):
-            highest_dev_acc = dev_acc
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'train_loss': train_loss,
-                'train_acc': train_acc,
-                'dev_loss': dev_loss,
-                'dev_acc': dev_acc,
-            }, CHECKPOINT)
-        os.system("rm -rf " + CHECKPOINT)
-        break
+    if(highest_dev_acc < dev_acc):
+        highest_dev_acc = dev_acc
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'train_loss': train_loss,
+            'train_acc': train_acc,
+            'dev_loss': dev_loss,
+            'dev_acc': dev_acc,
+        }, CHECKPOINT)
+    # except Exception as e:
+    #     print(e)
+        # if(highest_dev_acc < dev_acc):
+        #     highest_dev_acc = dev_acc
+        #     torch.save({
+        #         'epoch': epoch,
+        #         'model_state_dict': model.state_dict(),
+        #         'optimizer_state_dict': optimizer.state_dict(),
+        #         'train_loss': train_loss,
+        #         'train_acc': train_acc,
+        #         'dev_loss': dev_loss,
+        #         'dev_acc': dev_acc,
+        #     }, CHECKPOINT)
+        # os.system("rm -rf " + CHECKPOINT)
+        # break
