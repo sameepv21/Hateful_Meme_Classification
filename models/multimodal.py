@@ -128,7 +128,8 @@ class MultiModal(nn.Module):
             self.visual_bert(
                 input_ids = input_ids,
                 attention_mask = attention_mask,
-                visual_embeds = visual_features,
+                # visual_embeds = visual_features,
+                return_dict = False,
             )
         )
         
