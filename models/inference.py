@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from multimodal import Multimodal
+from multimodal import Fusion
 from ocr import OCR
 from PIL import Image
 import os
@@ -20,7 +20,7 @@ TEST_IMAGE = os.path.join(ROOT_PATH, 'test/01284.png')
 
 def load_model():
     # Load the model
-    model = Multimodal()
+    model = Fusion()
     checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.to(DEVICE)
