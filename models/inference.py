@@ -36,7 +36,7 @@ def get_image_and_text(image_path = TEST_IMAGE):
     ocr = OCR(image_path)
     text = ocr.detect_text()
 
-    return image, text
+    return image, [text]
 
 def predict(model, image, text):
     # Pass through the model
