@@ -1,38 +1,33 @@
 import pandas as pd
 import torch
 import torch.nn as nn
-from torchvision import models
-import torchvision.transforms as transforms
-from transformers import BertModel, BertTokenizer, AutoModel, VisualBertModel, AutoTokenizer
+import torch.nn.functional as F
+import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-import os
+import torchvision.transforms as transforms
+from torchvision import models
+from transformers import BertTokenizer, VisualBertModel, logging
 from PIL import Image
 from tqdm import tqdm
+import os
+import warnings
+warnings.filterwarnings("ignore")
+logging.set_verbosity_error()
 
-train_df = pd.read_json("../data/facebook/train.json")
-dev_df = pd.read_json("../data/facebook/dev.json")
+train_df = pd.read_json("/kaggle/input/facebook-hmcwa/facebook/train.json")
+dev_df = pd.read_json("/kaggle/input/facebook-hmcwa/facebook/dev.json")
+train_df.head()
 
-# Global Variable
+# Some global variables
 BATCH_SIZE = 128
-EPOCHS = 10
-ROOT_PATH = '../data/facebook'
+EPOCHS = 5
+ROOT_PATH = '/kaggle/input/facebook-hmcwa/facebook'
 IMAGE_SIZE = 224*224
 NUM_CLASSES = 2
 TEXTUAL_DIMENSION = 512
 VISUAL_DIMENSION = 512
-CHECKPOINT = './model.pt'
-train_loss = 0
-train_acc = 0
-dev_loss = 0
-dev_acc = 0
-highest_dev_acc = 0
-device = torch.device('cuda' if torch.cuda.is_available() else'cpu')
-
-# Define the transformation for preprocessing the image
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-])
+CHECKPOINT = '/kaggle/working/model.pt'
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else'cpu')
 
 # Initialize the dataset and maintain the dataloader
 class DynamicDataset(Dataset):
@@ -56,33 +51,20 @@ class DynamicDataset(Dataset):
         label = self.df.loc[index, 'label']
 
         return image ,text, label
-
-# Create objects of each set of data
-train_data = DynamicDataset(os.path.join(ROOT_PATH, 'train.json'), transform = transform)
-dev_data = DynamicDataset(os.path.join(ROOT_PATH, 'dev.json'), transform = transform)
-
-# Create a dataloader
-train_loader = DataLoader(train_data, batch_size = BATCH_SIZE, shuffle = True)
-dev_loader = DataLoader(dev_data, batch_size = BATCH_SIZE, shuffle = True)
-
-# Bert Tokenizer
-tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
-
-# Create Model
-class MultiModal(nn.Module):
+    
+class Visual_Feature(nn.Module):
     def __init__(self):
         super().__init__()
 
-        # ResNet50 architecture
+        # Define resnet50 model
         resnet50 = models.resnet50(weights = models.ResNet50_Weights.DEFAULT)
-
         convolution_layers = nn.Sequential(
-            nn.Conv2d(2048, 1024, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
+            nn.Conv2d(2048, 1024, kernel_size=(3, 3), stride = (1, 1), padding = (1, 1)),
             nn.ReLU(),
-            nn.Conv2d(1024, 512, kernel_size = (3, 3), stride = (1, 1), padding = (1, 1)),
+            nn.Conv2d(1024, 512, kernel_size=(3, 3), stride = (1, 1), padding = (1, 1)),
             nn.ReLU(),
         )
-
+        
         # Freeze parameters
         for param in resnet50.parameters():
             param.requires_grad = False
@@ -90,137 +72,81 @@ class MultiModal(nn.Module):
         self.resnet50 = nn.Sequential(*list(resnet50.children())[:-1])
         self.convolution_layers = convolution_layers
 
-        # Visual BERT
-        self.visual_bert = VisualBertModel.from_pretrained('uclanlp/visualbert-vqa')
+    def get_visual_features(self, images):
+        # Extract visual features from resnet50 model
+        visual_features = self.convolution_layers(self.resnet50(images))
+        visual_features = visual_features.view(visual_features.size(0), -1)
+
+        return visual_features
+    
+class Textual_Feature(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        # Define virtual bert model
+        visual_bert = VisualBertModel.from_pretrained('uclanlp/visualbert-vqa')
         dense_layers = nn.Sequential(
             nn.Linear(768, 512),
             nn.ReLU(),
         )
+        
+#         # Freeze parameters
+#         for param in visual_bert.parameters():
+#             param.requires_grad = False
 
+        self.visual_bert = visual_bert
         self.dense_layers = dense_layers
 
-        # Late Fusion
-        self.fusion_fc = nn.Sequential(
+        # Define tokenizer
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    
+    def get_textual_features(self, texts):
+        # Define indices and attention mask
+        inputs = self.tokenizer.batch_encode_plus(texts, padding = True, return_tensors = 'pt')
+        input_ids = inputs['input_ids'].to(DEVICE)
+        attention_mask = inputs['attention_mask'].to(DEVICE)
+
+        # Extract textual features from virtual bert model
+        textual_features = self.visual_bert(input_ids = input_ids, attention_mask = attention_mask, return_dict = False)
+        textual_features = textual_features[0][:, 0, :] # Extract the first token of last hidden state
+        textual_features = self.dense_layers(textual_features)
+
+        return textual_features
+    
+class Fusion(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        # Define fusion layers
+        fusion_layers = nn.Sequential(
+            nn.Linear((VISUAL_DIMENSION + TEXTUAL_DIMENSION), 512),
+            nn.ReLU(),
             nn.Linear(512, 256),
             nn.ReLU(),
-            nn.Linear(256, 64),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
             nn.ReLU(),
             nn.Linear(64, 32),
             nn.ReLU(),
-            nn.Linear(32, 1)
+            nn.Linear(32, 1),
         )
 
-        # Dropout layer
-        self.dropout = nn.Dropout(0.5)
-
-    def forward(self, images, texts):
-        # Extract visual features from images
-        visual_features = self.convolution_layers(self.resnet50(images))
-        visual_features = visual_features.view(visual_features.size(0), -1)
-        
-        # Generate tokens for input ids and attention mask
-        inputs = tokenizer.batch_encode_plus(texts, padding=True, truncation=True, return_tensors='pt')
-        input_ids = inputs['input_ids'].to(device)
-        attention_mask = inputs['attention_mask'].to(device)
-
-        # Get the textual features
-        textual_features = self.dense_layers(
-            self.visual_bert(
-                input_ids = input_ids,
-                attention_mask = attention_mask,
-                # visual_embeds = visual_features,
-                return_dict = False,
-            )
-        )
-        
-        # Concatenate visual and textual features
-        fused_features = torch.cat((visual_features, textual_features), dim=1)
-        
-        # Fuse the multimodal features
-        output = self.fusion_fc(fused_features)
-        
-        return output
-
-# Initialize the model    
-model = MultiModal()
-model.to(device)
-
-# Define the loss function and optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr = 0.001) # Adaptive learning rate left
-
-# Load model from a previously saved checkpoint
-if os.path.exists(CHECKPOINT):
-    checkpoint = torch.load(CHECKPOINT, map_location=device)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    EPOCHS = EPOCHS - checkpoint['epoch']
-    train_loss = checkpoint['train_loss']
-    train_acc = checkpoint['train_acc']
-    dev_loss = checkpoint['dev_loss']
-    dev_acc = checkpoint['dev_acc']
-
-for epoch in range(EPOCHS):
-    # try:
-    model.train()
-
-    for images, texts, labels in tqdm(train_loader):
-        images = images.to(device)
-        labels = labels.to(device)
-        labels = torch.reshape(labels, (-1, 1))
-        labels = labels.to(dtype = torch.float32)
-
-        optimizer.zero_grad()
-        outputs = model(images, texts)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-
-        train_loss += loss.item() * images.size(0)
-        train_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+        self.fusion_layers = fusion_layers
     
-    train_loss = train_loss / len(train_data)
-    train_acc = train_acc / len(train_data)
-    print(f"Epoch {epoch+1}/{EPOCHS}: Train Loss = {train_loss:.4f}, Train Accuracy = {train_acc:.4f}")
-    model.eval()
-    for images, texts, labels in tqdm(dev_loader):
-        images = images.to(device)
-        labels = labels.to(device)
-        labels = torch.reshape(labels, (-1, 1))
-        labels = labels.to(dtype = torch.float32)
-        
-        outputs = model(images, texts)
-        loss = criterion(outputs, labels)
-        dev_los = loss.item() * images.size(0)
-        dev_acc += torch.sum(torch.max(outputs, dim = 1)[1] == labels)
+    def forward(self, images, texts):
+        # Initialize text and visual classes
+        visual_class = Visual_Feature().to(DEVICE)
+        textual_class = Textual_Feature().to(DEVICE)
 
-    dev_loss = dev_loss / len(dev_data)
-    dev_acc = dev_acc / len(dev_data)
-    print(f"Epoch {epoch+1}/{EPOCHS}: Dev Loss = {dev_loss:.4f}, Dev Accuracy = {dev_acc:.4f}")
+        # Extract visual and textual features
+        visual_features = visual_class.get_visual_features(images)
+        textual_features = textual_class.get_textual_features(texts)
 
-    if(highest_dev_acc < dev_acc):
-        highest_dev_acc = dev_acc
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'train_loss': train_loss,
-            'train_acc': train_acc,
-            'dev_loss': dev_loss,
-            'dev_acc': dev_acc,
-        }, CHECKPOINT)
-    # except Exception as e:
-    #     print(e)
-        # if(highest_dev_acc < dev_acc):
-        #     highest_dev_acc = dev_acc
-        #     torch.save({
-        #         'epoch': epoch,
-        #         'model_state_dict': model.state_dict(),
-        #         'optimizer_state_dict': optimizer.state_dict(),
-        #         'train_loss': train_loss,
-        #         'train_acc': train_acc,
-        #         'dev_loss': dev_loss,
-        #         'dev_acc': dev_acc,
-        #     }, CHECKPOINT)
-        # os.system("rm -rf " + CHECKPOINT)
-        # break
+        # Concatenate visual and textual features
+        features = torch.cat((visual_features, textual_features), dim = 1)
+
+        # Pass through fusion layers
+        output = self.fusion_layers(features)
+
+        return output
