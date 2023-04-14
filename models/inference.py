@@ -6,6 +6,11 @@ from multimodal import Fusion
 from ocr import OCR
 from PIL import Image
 import os
+import nltk
+nltk.download('wordnet')
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer, PorterStemmer
+import string
 
 # Some global variables
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -35,6 +40,14 @@ def get_image_and_text(image_path = TEST_IMAGE):
     # Pass through ocr module
     ocr = OCR(image_path)
     text = ocr.detect_text()
+
+    # Preprocess text
+    text = text.lower()
+    word_tokens = text.split()
+    table = str.maketrans('', '', string.punctuation)
+    stripped = [w.translate(table) for w in word_tokens]
+
+    text = " ".join(stripped).strip()
 
     return image, [text]
 
