@@ -45,9 +45,9 @@ def predict(model, image, text):
 
     return predicted
 
-def main():
+def main(image_path = TEST_IMAGE):
     model = load_model()
-    image, text = get_image_and_text(TEST_IMAGE)
+    image, text = get_image_and_text(image_path)
     predicted = predict(model, image, text)
 
     print(predicted)
