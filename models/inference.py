@@ -1,47 +1,55 @@
-import __main__
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from PIL import Image
-from multimodal import MultiModal
+from multimodal import Multimodal
 from ocr import OCR
+from PIL import Image
+import os
 
-# Define the device
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-# Load the model
-model = MultiModal()
-checkpoint = torch.load('./model.pt', map_location=device)
-model.load_state_dict(checkpoint['model_state_dict'])
-model.eval()
-
-# Define the image transforms
-image_transforms = transforms.Compose([
+# Some global variables
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+MODEL_PATH = "./model.pt"
+ROOT_PATH = "../data/facebook"
+TRANSFORM = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
+TEST_IMAGE = os.path.join(ROOT_PATH, 'test/01284.png')
 
-# Define the OCR function
-def ocr(image_path):
-    ocr = OCR(image_path)
-    return ocr.detect_text()
+def load_model():
+    # Load the model
+    model = Multimodal()
+    checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.to(DEVICE)
 
-# Define the inference function
-def predict(image_path):
-    # Extract the text from the image
-    text = ocr(image_path)
-    
-    # Load and preprocess the image
+    return model
+
+def get_image_and_text(image_path = TEST_IMAGE):
+    # Get the text and image
     image = Image.open(image_path)
-    image = image_transforms(image).unsqueeze(0).to(device)
-    
-    # Pass the image through the model
-    with torch.no_grad():
-        output = model(image, text)
-        output = F.sigmoid(output)
-    
-    # Return the prediction and the extracted text
-    return output.item(), text
+    image = TRANSFORM(image).unsqueeze(0).to(DEVICE)
 
-print(predict("../data/facebook/test/01284.png"))
+    # Pass through ocr module
+    ocr = OCR(image_path)
+    text = ocr.detect_text()
+
+    return image, text
+
+def predict(model, image, text):
+    # Pass through the model
+    output = model(image, text)
+    predicted = torch.round(torch.sigmoid(output))
+
+    return predicted
+
+def main():
+    model = load_model()
+    image, text = get_image_and_text(TEST_IMAGE)
+    predicted = predict(model, image, text)
+
+    print(predicted)
+
+main()
