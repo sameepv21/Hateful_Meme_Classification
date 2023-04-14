@@ -14,19 +14,19 @@ import warnings
 warnings.filterwarnings("ignore")
 logging.set_verbosity_error()
 
-train_df = pd.read_json("/kaggle/input/facebook-hmcwa/facebook/train.json")
-dev_df = pd.read_json("/kaggle/input/facebook-hmcwa/facebook/dev.json")
+train_df = pd.read_json("../data/facebook/train.json")
+dev_df = pd.read_json("../data/facebook/dev.json")
 train_df.head()
 
 # Some global variables
 BATCH_SIZE = 128
 EPOCHS = 5
-ROOT_PATH = '/kaggle/input/facebook-hmcwa/facebook'
+ROOT_PATH = '../data/facebook'
 IMAGE_SIZE = 224*224
 NUM_CLASSES = 2
 TEXTUAL_DIMENSION = 512
 VISUAL_DIMENSION = 512
-CHECKPOINT = '/kaggle/working/model.pt'
+CHECKPOINT = './model.pt'
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else'cpu')
 
 # Initialize the dataset and maintain the dataloader
