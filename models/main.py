@@ -7,6 +7,7 @@ Other API is a testing api to see whether the server is running or not.
 # Import libraries
 from fastapi import FastAPI, File, UploadFile
 import os
+from inference import main as predict
 
 # Create the app object
 app = FastAPI()
@@ -23,5 +24,11 @@ async def create_upload_file(file: UploadFile = File(...)):
     test_dir = '../data/facebook/test'
     with open(os.path.join(test_dir, file.filename), "wb") as f:
         f.write(contents)
-        
-    return {"filename": file.filename}
+
+    print("Saved image and now generating prediction")
+
+    # Generate predictions
+    predicted = predict(os.path.join(test_dir, file.filename))
+
+    # Return the predictions
+    return {"prediction": predicted}
