@@ -5,3 +5,4 @@ data
 */__pycache__
 *.pt
 .env
+*/package-lock.json
