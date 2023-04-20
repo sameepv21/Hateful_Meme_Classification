@@ -8,9 +8,21 @@ Other API is a testing api to see whether the server is running or not.
 from fastapi import FastAPI, File, UploadFile
 import os
 from inference import main as predict
+from fastapi.middleware.cors import CORSMiddleware
 
 # Create the app object
 app = FastAPI()
+
+# Enable cors for all origins
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create a test endpoint
 @app.get("/")
