@@ -11,7 +11,7 @@ const Navbar = () => {
               to="/"
               className="flex items-center text-white font-bold text-xl uppercase"
             >
-              My Website
+              Hateful Meme Classification
             </Link>
           </div>
           <div className="flex">
@@ -22,10 +22,10 @@ const Navbar = () => {
               Home
             </Link>
             <Link
-              to="/projects"
+              to="/project"
               className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
             >
-              Projects
+              Project
             </Link>
             <Link
               to="/docs"
