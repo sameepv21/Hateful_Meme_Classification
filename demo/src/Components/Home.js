@@ -38,14 +38,14 @@ const Home = () => {
         </h1>
       </div>
 
-      <div className="text-left mt-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-row items-center justify-center">
+      <div className="mb-10 text-left mt-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-row items-center justify-center">
         <img
           className="w-1/2 mx-auto my-4 lg:my-0 lg:float-left lg:w-1/3 rounded-md shadow-lg"
           src="ML_Component_Architecture.png"
           alt="Architecture"
         />
 
-        <p className="ml-4 lg:w-1/3 mb-10">
+        <p className="ml-14 lg:w-2/3">
           The figure on the left shows a high level architecture that has been used in this project. This architecture is
           specifically designed for training purposes and is followed rigorously to make the process of building model
           smoother. The architecture is divided into three different modules. First: A Visual Processing Unit (VPU),
