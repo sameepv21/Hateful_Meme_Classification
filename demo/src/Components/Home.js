@@ -24,39 +24,13 @@ const Home = () => {
         identify and remove such content to ensure a safe and respectful online environment.
       </p> */}
 
-      <p className='text-left mt-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+      <p className='mb-4 text-left mt-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         The use of multimodal fusion techniques for hateful meme classification has shown promising results in previous
         research. By leveraging multiple modalities such as texts and images, these techniques can capture the nuances of
         hateful memes that may not be evident in a single modality alone. Facebook's hateful meme dataset provides a
         valuable resource for researchers to test and evaluate the effectiveness of these techniques in a real-world
         scenario.
       </p>
-
-      <div className="flex justify-center mt-4 mb-4">
-        <h1 className="text-4xl font-bold text-center text-gray-800">
-          Architecture
-        </h1>
-      </div>
-
-      <div className="mb-10 text-left mt-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-row items-center justify-center">
-        <img
-          className="w-1/2 mx-auto my-4 lg:my-0 lg:float-left lg:w-1/3 rounded-md shadow-lg"
-          src="ML_Component_Architecture.png"
-          alt="Architecture"
-        />
-
-        <p className="ml-14 lg:w-2/3">
-          The figure on the left shows a high level architecture that has been used in this project. This architecture is
-          specifically designed for training purposes and is followed rigorously to make the process of building model
-          smoother. The architecture is divided into three different modules. First: A Visual Processing Unit (VPU),
-          Second: A Textual Processing Unit (TPU) and Third: Fusion model. Please note that even though the process seems
-          streamlined, it is not. <br /><br />
-
-          The job of VPU and TPU is to extract visual and textual features respectively. These extracted features are then
-          passed to fusion layer where they are concatenated and passed to a fully connected layer. This layer is then
-          responsible for making the final prediction.
-        </p>
-      </div>
     </div>
   )
 }
