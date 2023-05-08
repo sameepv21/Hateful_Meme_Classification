@@ -9,7 +9,7 @@ const Architecture = () => {
         </h1>
       </div>
       <div className="flex flex-col items-center justify-center ">
-        <div className="max-w-md">
+        <div className="max-w-3xl">
           <img className="mx-auto rounded-md shadow-lg" src="ML_Component_Architecture.png" alt="Hateful Meme" />
         </div>
         <p className="text-left mt-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -65,7 +65,7 @@ const Architecture = () => {
         </h1>
       </div>
 
-      <div className="flex flex-col items-center justify-center mt-4">
+      <div className="flex flex-col items-center justify-center mt-4 mb-4">
         <p className="text-left max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           Finally, the third component of the architecture is the fusion layer(s). This layer is the most essential
           component of the entire project. This component gets the extracted visual and textual features from the
