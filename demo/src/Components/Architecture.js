@@ -80,10 +80,10 @@ const Architecture = () => {
         <a href="https://github.com/sameepv21/Hateful_Meme_Classification" className='text-blue-500 hover:text-blue-600 font-bold ml-1'>
           Code
         </a>
-        <a href="https://github.com/sameepv21/Hateful_Meme_Classification" className='text-blue-500 hover:text-blue-600 font-bold ml-1'>
+        <a href="https://drive.google.com/file/d/1U_tDC7jeNkLZUwaJ8fguL8b1jVgZFYgk/view?usp=sharing" className='text-blue-500 hover:text-blue-600 font-bold ml-1'>
           Report
         </a>
-        <a href="https://github.com/sameepv21/Hateful_Meme_Classification" className='text-blue-500 hover:text-blue-600 font-bold ml-1'>
+        <a href="https://drive.google.com/file/d/1wiIA0t5FPhAJ-aH_i9TTLn_yi6s_PPEz/view?usp=sharing" className='text-blue-500 hover:text-blue-600 font-bold ml-1'>
           Presentation
         </a>
       </div>
