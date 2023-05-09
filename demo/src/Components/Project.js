@@ -4,9 +4,11 @@ import axios from 'axios';
 function App() {
   const [image, setImage] = useState(null);
   const [prediction, setPrediction] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    setIsLoading(true);
     const formData = new FormData();
     formData.append('file', image);
     axios.post('http://localhost:8000/predict', formData, {
@@ -21,9 +23,11 @@ function App() {
         } else {
           setPrediction('Hateful');
         }
+        setIsLoading(false);
       })
       .catch(error => {
         console.log(error);
+        setIsLoading(false);
       });
   };
 
@@ -51,7 +55,12 @@ function App() {
             </button>
           </div>
         </form>
-        {prediction !== '' && (
+        {isLoading && (
+          <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <h1 className="block text-gray-700 font-bold mb-2">Predicting...</h1>
+          </div>
+        )}
+        {prediction !== '' && !isLoading && (
           <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
             <h1 className="block text-gray-700 font-bold mb-2">Prediction</h1>
             <p className="text-gray-700">{prediction}</p>
