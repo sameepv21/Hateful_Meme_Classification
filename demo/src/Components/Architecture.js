@@ -53,9 +53,9 @@ const Architecture = () => {
           Once all the images have been preprocessed, the batch of the dataset is ready to be passed through the model.
           For the model, initially ResNet50 was used which was replaced by YOLOv8 in the hope of improving the performance
           of the model. ResNet50 is a 50 layer architecture containing multiple blocks of CNN, pooling and activated layers.
-          At the end, ResNet50 model provides the features of the dimension (BATCH\_SIZE, 2048). Since the number of neurons
+          At the end, ResNet50 model provides the features of the dimension (BATCH_SIZE, 2048). Since the number of neurons
           are very high, we need additional layers to bring the number of features down. Thus, two additional layers are
-          with ReLU activation function bringing the dimension of the output features to (BATCH\_SIZE, 512).
+          with ReLU activation function bringing the dimension of the output features to (BATCH_SIZE, 512).
         </p>
       </div>
 
