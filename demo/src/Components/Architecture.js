@@ -65,7 +65,7 @@ const Architecture = () => {
         </h1>
       </div>
 
-      <div className="flex flex-col items-center justify-center mt-4">
+      <div className="flex flex-col items-center justify-center mt-4 mb-4">
         <p className="text-left max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           Finally, the third component of the architecture is the fusion layer(s). This layer is the most essential
           component of the entire project. This component gets the extracted visual and textual features from the
@@ -73,19 +73,6 @@ const Architecture = () => {
           it is a late fusion model. In addition, the concatenated features are passed to additional layers that understand
           the combined meaning of the image and text to classify the meme as either hateful or non-hateful.
         </p>
-      </div>
-
-      <div className='flex flex-col items-center justify-center mt-4 mb-4 text-blue-500'>
-        For more information please feel free to browse below links
-        <a href="https://github.com/sameepv21/Hateful_Meme_Classification" className='text-blue-500 hover:text-blue-600 font-bold ml-1'>
-          Code
-        </a>
-        <a href="https://drive.google.com/file/d/1U_tDC7jeNkLZUwaJ8fguL8b1jVgZFYgk/view?usp=sharing" className='text-blue-500 hover:text-blue-600 font-bold ml-1'>
-          Report
-        </a>
-        <a href="https://drive.google.com/file/d/1wiIA0t5FPhAJ-aH_i9TTLn_yi6s_PPEz/view?usp=sharing" className='text-blue-500 hover:text-blue-600 font-bold ml-1'>
-          Presentation
-        </a>
       </div>
     </div>
   )
